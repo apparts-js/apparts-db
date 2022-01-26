@@ -5,7 +5,7 @@ const dbConfig = {
   ..._dbConfig,
   postgresql: {
     ..._dbConfig.postgresql,
-    password: dbConfig.postgresql.pw,
+    password: _dbConfig.postgresql.pw,
   },
 };
 
