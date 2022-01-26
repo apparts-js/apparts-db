@@ -37,6 +37,7 @@ const createOrDropDatabase = async (action, db_config, dbName) => {
 module.exports = ({ testName }) => {
   const dbName = dbConfig.postgresql.db + "_" + testName;
 
+  /* eslint-disable-next-line no-undef */
   beforeAll(async () => {
     try {
       await createOrDropDatabase("DROP", dbConfig.postgresql, dbName);
@@ -53,6 +54,7 @@ module.exports = ({ testName }) => {
     }
   }, 60000);
 
+  /* eslint-disable-next-line no-undef */
   afterAll(async () => {
     // avoid jest open handle error
     // https://github.com/visionmedia/supertest/issues/520#issuecomment-469044925

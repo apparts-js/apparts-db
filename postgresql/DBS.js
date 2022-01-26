@@ -89,7 +89,7 @@ class DBS {
     }
   }
 
-  createUser(user) {}
+  createUser() {}
 
   convertType(type) {
     switch (type.type) {

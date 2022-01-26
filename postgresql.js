@@ -17,7 +17,7 @@ module.exports.connect = function (c, next, error) {
     idleTimeoutMillis: c.idleTimeoutMillis || 10000,
   });
 
-  pool.on("error", (err, client) => {
+  pool.on("error", (err) => {
     // What to do?
     console.log(
       `Postgres DB-connection failed for host ${c.host}:${c.port},` +
@@ -28,7 +28,7 @@ module.exports.connect = function (c, next, error) {
 
   if (c.bigIntAsNumber) {
     // Return Bigint and stuff as number, not as string
-    pgTypes.setTypeParser(20, function (val) {
+    pgTypes.setTypeParser(20, (val) => {
       return parseInt(val);
     });
   }
