@@ -1,11 +1,17 @@
 const { Client } = require("pg");
 const connect = require("../").default;
-const dbConfig = require("@apparts/config").get("db-test-config");
+const _dbConfig = require("@apparts/config").get("db-test-config");
+const dbConfig = {
+  ..._dbConfig,
+  postgresql: {
+    ..._dbConfig.postgresql,
+    password: dbConfig.postgresql.pw,
+  },
+};
 
 const createOrDropDatabase = async (action, db_config, dbName) => {
   const config = { ...db_config };
   config.database = "postgres";
-  config.password = db_config.pw;
 
   const client = new Client(config);
   //disconnect client when all queries are finished
