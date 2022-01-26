@@ -1,9 +1,9 @@
 name: Run API Tests
 on:
   push:
-    branches: [master]
+    branches: [master, v2]
   pull_request:
-    branches: [master]
+    branches: [master, v2]
 
 jobs:
   # Label of the runner job
