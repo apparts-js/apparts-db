@@ -7,6 +7,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Service containers to run with `runner-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
@@ -40,3 +60,5 @@ jobs:
         name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          # The hostname used to communicate with the PostgreSQL service container
+          DB_TEST_CONFIG: ewogICJ1c2UiOiAicG9zdGdyZXNxbCIsCiAgInBvc3RncmVzcWwiOiB7CiAgICAidXNlciI6ICJwb3N0Z3JlcyIsCiAgICAicHciOiAicG9zdGdyZXMiLAogICAgImhvc3QiOiAibG9jYWxob3N0IiwKICAgICJwb3J0IjogNTQzMiwKICAgICJkYiI6ICJwb3N0Z3JlcyIsCiAgICAibWF4UG9vbFNpemUiOiAxLAogICAgImNvbm5lY3Rpb25UaW1lb3V0TWlsbGlzIjogMTAwMDAsCiAgICAiaWRsZVRpbWVvdXRNaWxsaXMiOiAxMDAwMCwKICAgICJiaWdJbnRBc051bWJlciI6IHRydWUKICB9Cn0=
