@@ -12,7 +12,7 @@ const dbConfig = {
 const createOrDropDatabase = async (action, db_config, dbName) => {
   const config = { ...db_config };
   config.database = "postgres";
-
+  console.log("createOrDrop Config", config);
   const client = new Client(config);
   //disconnect client when all queries are finished
   //  client.on('drain', client.end.bind(client));
