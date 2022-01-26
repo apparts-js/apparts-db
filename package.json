@@ -12,7 +12,7 @@
     "build:watch": "tsc -w -p tsconfig.release.json",
     "prepublishOnly": "npm run clean && npm ci  && npm run ci && npm run build",
     "clean": "rimraf coverage build tmp",
-    "ci": "npm run ci:prettier && npm run ci:eslint && npm run ci:test",
+    "ci": "npm ci && npm run ci:prettier && npm run ci:eslint && npm run ci:test",
     "ci:prettier": "CI=true prettier --check .",
     "ci:test": "CI=true jest test",
     "ci:eslint": "",
