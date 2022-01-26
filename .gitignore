@@ -9,3 +9,5 @@ node_modules/
 
 #tern files
 .tern-port
+
+build/
