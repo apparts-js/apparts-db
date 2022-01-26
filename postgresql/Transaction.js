@@ -16,7 +16,7 @@ class Transaction {
         " ORDER BY" +
         order
           .map(
-            (arr) => ` ${arr.key}
+            (arr) => ` "${arr.key}"
     ${arr.dir}`
           )
           .join(" , ");
@@ -62,6 +62,9 @@ class Transaction {
         newVals.push(val);
         return `$${this._counter++} = ANY("${key}")`;
       case "in":
+        if (val.length === 0) {
+          return " FALSE ";
+        }
         val.forEach((v) => newVals.push(v));
         return (
           `"${key}" IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
