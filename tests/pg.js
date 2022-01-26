@@ -1,6 +1,13 @@
 const { Client } = require("pg");
 const connect = require("../");
-const dbConfig = require("@apparts/config").get("db-test-config");
+const _dbConfig = require("@apparts/config").get("db-test-config");
+const dbConfig = {
+  ..._dbConfig,
+  postgresql: {
+    ..._dbConfig.postgresql,
+    password: _dbConfig.postgresql.pw,
+  },
+};
 
 const createOrDropDatabase = async (action, db_config, dbName) => {
   const config = { ...db_config };
@@ -28,30 +35,22 @@ const createOrDropDatabase = async (action, db_config, dbName) => {
 };
 
 module.exports = ({ testName }) => {
-  const dbName = dbConfig.postgresql.db + "_"+ testName
+  const dbName = dbConfig.postgresql.db + "_" + testName;
 
   beforeAll(async () => {
     try {
-      await createOrDropDatabase(
-        "DROP",
-        dbConfig.postgresql,
-        dbName
-      );
+      await createOrDropDatabase("DROP", dbConfig.postgresql, dbName);
     } catch (e) {
       if (e.code !== "3D000") {
         console.log(e);
       }
     }
     try {
-      await createOrDropDatabase(
-        "CREATE",
-        dbConfig.postgresql,
-        dbName
-      );
+      await createOrDropDatabase("CREATE", dbConfig.postgresql, dbName);
     } catch (e) {
       console.log("ERROR", e);
       throw e;
- }
+    }
   }, 60000);
 
   afterAll(async () => {
@@ -95,6 +94,6 @@ module.exports = ({ testName }) => {
       await new Promise((res) => {
         dbs.shutdown(res);
       });
-    }
+    },
   };
 };

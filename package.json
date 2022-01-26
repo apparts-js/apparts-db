@@ -4,9 +4,15 @@
   "description": "Database drivers for multiple databases",
   "main": "index.js",
   "scripts": {
+    "prepublishOnly": "npm run clean && npm ci  && npm run ci",
     "testOne": "jest",
     "test": "jest --watch --detectOpenHandles",
-    "testCoverage": "jest --coverage"
+    "testCoverage": "jest --coverage",
+    "clean": "rimraf coverage build tmp",
+    "ci": "npm ci && npm run ci:prettier && npm run ci:eslint && npm run ci:test",
+    "ci:prettier": "CI=true prettier --check .",
+    "ci:test": "CI=true jest test",
+    "ci:eslint": "eslint . -c .eslintrc.js"
   },
   "repository": {
     "type": "git",
@@ -23,8 +29,9 @@
     "pg": "^8.0.0"
   },
   "devDependencies": {
-    "@apparts/config": "^1.0.5",
+    "@apparts/config": "^1.0.6",
     "jest": "^27.3.1",
+    "prettier": "^2.5.1",
     "supertest": "^6.1.3"
   }
 }
