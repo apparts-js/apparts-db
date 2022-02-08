@@ -21,6 +21,7 @@ const connect = require("@apparts/db");
 const DB_CONFIG = {
   "use": "postgresql",
   "postgresql": {
+    // pg settings
     "host": "localhost",
     "port": 5432,
     "user": "postgres",
@@ -29,10 +30,20 @@ const DB_CONFIG = {
     "maxPoolSize": 5,
     "connectionTimeoutMillis": 0,
     "idleTimeoutMillis": 1000,
+    
+    // Use bigint as id instead of integer
+    "idsAsBigInt": false,
+    
+    // Should bigint be returned as number? If false, a string will be returned
     "bigIntAsNumber": true,
-    // use json type when finding an array, defaults to false
+    
+    // Use json type when finding an array, defaults to false
     "arrayAsJSON": true,
+    
+    // Turn on logging on error. Default: no logging
     "logs": "errors",
+    
+    // Also log query parameters on error. Only effective if "logs" === "errors".
     "logParams": true
   }
 };
