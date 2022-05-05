@@ -77,7 +77,7 @@ connect(DB_CONFIG, (e, dbs) => {
 
   // retrieve values
   const filter = { id: { op: "in", vals: [2, 3] }};
-  // see below for everything you can stick into filter
+  // see below for everything you can stick into filter and into order
   const limit = 10, offset = 0, order = [{ key: "id", dir: "ASC" }];
   await dbs.collection("testTable").find(filter, limit, offset, order);
 
@@ -103,6 +103,26 @@ connect(DB_CONFIG, (e, dbs) => {
   await dbs.collection("testTable").drop();
 
 #+END_SRC
+
+*** Order
+
+The order is given as an array of objects. The order is established,
+using the first array element. If two elements are equal according to
+that order, the next array element is used for ordering (and so on).
+
+The order array takes this form:
+
+#+BEGIN_SRC js
+[{ key: "<key>", dir: "ASC" | "DESC" }, ... ]
+#+END_SRC
+
+The object can contain these keys:
+- key :: (required) The field that should be ordered
+- dir :: (required) The direction into which is ordered (ascending or descending).
+- path :: (opitonal) If =key= describes a JSON field, =path= can be used
+  to specify by which element within an JSON object should be ordered.
+  Path is then an array of strings (keys) that define the path within
+  the nested JSON object.
 
 *** Filters
 
