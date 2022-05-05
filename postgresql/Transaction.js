@@ -28,7 +28,6 @@ class Transaction {
             }
           })
           .join(" , ");
-      console.log(q);
     }
     if (limit) {
       q += ` LIMIT $${this._counter++}`;
