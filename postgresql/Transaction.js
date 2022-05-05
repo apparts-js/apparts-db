@@ -15,11 +15,20 @@ class Transaction {
       q +=
         " ORDER BY" +
         order
-          .map(
-            (arr) => ` "${arr.key}"
-    ${arr.dir}`
-          )
+          .map((arr) => {
+            if (arr.path) {
+              const path = this._buildJsonPath(
+                arr.key,
+                arr.path || [],
+                newVals
+              );
+              return ` ${path} ${arr.dir === "ASC" ? "ASC" : "DESC"} `;
+            } else {
+              return ` "${arr.key}" ${arr.dir === "ASC" ? "ASC" : "DESC"} `;
+            }
+          })
           .join(" , ");
+      console.log(q);
     }
     if (limit) {
       q += ` LIMIT $${this._counter++}`;
@@ -56,6 +65,28 @@ class Transaction {
     );
   }
 
+  _buildJsonPath(key, path, newVals) {
+    if (path.length < 1) {
+      throw new Error(
+        "ERROR, JSON path requires at least one path element. You submitted []."
+      );
+    }
+
+    path.forEach((v) => newVals.push(v));
+
+    return (
+      `"${key}"` +
+      (path.length === 1
+        ? ""
+        : "->" +
+          path
+            .slice(0, -1)
+            .map(() => `$${this._counter++}`)
+            .join("->")) +
+      `->>$${this._counter++} `
+    );
+  }
+
   _decideOperator(key, op, val, newVals) {
     switch (op) {
       case "any":
@@ -69,25 +100,11 @@ class Transaction {
         return (
           `"${key}" IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
         );
-      case "of":
-        if (val.path.length < 1) {
-          throw new Error(
-            "ERROR, operator 'of' requires at least one path element. You submitted []."
-          );
-        }
-        val.path.forEach((v) => newVals.push(v));
+      case "of": {
+        const path = this._buildJsonPath(key, val.path, newVals);
         newVals.push(val.value);
-        return (
-          `"${key}"` +
-          (val.path.length === 1
-            ? ""
-            : "->" +
-              val.path
-                .slice(0, -1)
-                .map(() => `$${this._counter++}`)
-                .join("->")) +
-          `->>$${this._counter++} = $${this._counter++}`
-        );
+        return `${path} = $${this._counter++}`;
+      }
       case "lte":
         newVals.push(val);
         return `"${key}" <= $${this._counter++}`;

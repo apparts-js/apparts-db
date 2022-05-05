@@ -318,7 +318,7 @@ CREATE TABLE "testTable3" (
         })
         .toArray();
     }).rejects.toThrow(
-      "ERROR, operator 'of' requires at least one path element. You submitted []."
+      "ERROR, JSON path requires at least one path element. You submitted []."
     );
   });
 
@@ -564,6 +564,40 @@ CREATE TABLE "testJson" (
       dbs.collection("testJson").find({}).toArray()
     ).resolves.toMatchObject([
       { id: 1, jsonArray: [1, 2, 4], jsonField: { a: 1 } },
+    ]);
+  });
+
+  test("Should find ordered", async () => {
+    await dbs
+      .collection("testJson")
+      .insert([
+        { jsonField: { field: { subfield: 1 } } },
+        { jsonField: { field: { subfield: "a" } } },
+        { jsonField: { field: { subfield: 343 } } },
+        { jsonField: { field: { subfield: "bc" } } },
+        { jsonField: { field: { subfield: "ba" } } },
+        { jsonField: { field: "3" } },
+      ]);
+
+    await expect(
+      dbs
+        .collection("testJson")
+        .find({}, undefined, undefined, [
+          {
+            key: "jsonField",
+            path: ["field", "subfield"],
+            dir: "ASC",
+          },
+        ])
+        .toArray()
+    ).resolves.toMatchObject([
+      { id: 2, jsonField: { field: { subfield: 1 } } },
+      { id: 4, jsonField: { field: { subfield: 343 } } },
+      { id: 3, jsonField: { field: { subfield: "a" } } },
+      { id: 6, jsonField: { field: { subfield: "ba" } } },
+      { id: 5, jsonField: { field: { subfield: "bc" } } },
+      { id: 1, jsonField: { a: 1 } },
+      { id: 7, jsonField: { field: "3" } },
     ]);
   });
 });
