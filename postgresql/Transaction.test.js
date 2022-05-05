@@ -189,9 +189,16 @@ CREATE TABLE "testTable3" (
     ).resolves.toStrictEqual([]);
 
     await expect(
-      dbs
-        .collection("testTable3")
-        .insert([{ object1: { object2: { tokens: "abc" } } }])
+      dbs.collection("testTable3").insert([
+        {
+          object1: {
+            object2: { tokens: "abc" },
+            aNumber: 3,
+            aBool: true,
+            aString: "Abc",
+          },
+        },
+      ])
     ).resolves.toStrictEqual([{ id: 1 }]);
 
     await expect(
@@ -320,6 +327,48 @@ CREATE TABLE "testTable3" (
     }).rejects.toThrow(
       "ERROR, JSON path requires at least one path element. You submitted []."
     );
+
+    await expect(
+      dbs
+        .collection("testTable3")
+        .find({
+          object1: {
+            op: "of",
+            val: {
+              path: ["tokens"],
+              value: { op: "like", val: "%b%" },
+            },
+          },
+        })
+        .toArray()
+    ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
+
+    await expect(
+      dbs
+        .collection("testTable3")
+        .find({
+          object1: {
+            op: "and",
+            val: [
+              {
+                op: "of",
+                val: {
+                  path: ["aNumber"],
+                  value: { op: "gt", val: 2 },
+                },
+              },
+              {
+                op: "of",
+                val: {
+                  path: ["aBool"],
+                  value: true,
+                },
+              },
+            ],
+          },
+        })
+        .toArray()
+    ).resolves.toMatchObject([{ object1: { aNumber: 3 } }]);
   });
 
   test("Should findByIds", async () => {

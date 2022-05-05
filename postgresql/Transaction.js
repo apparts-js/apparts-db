@@ -16,9 +16,10 @@ class Transaction {
         " ORDER BY" +
         order
           .map((arr) => {
+            this._checkKey(arr.key);
             if (arr.path) {
               const path = this._buildJsonPath(
-                arr.key,
+                `"${arr.key}"`,
                 arr.path || [],
                 newVals
               );
@@ -74,7 +75,7 @@ class Transaction {
     path.forEach((v) => newVals.push(v));
 
     return (
-      `"${key}"` +
+      `${key}` +
       (path.length === 1
         ? ""
         : "->" +
@@ -86,42 +87,62 @@ class Transaction {
     );
   }
 
-  _decideOperator(key, op, val, newVals) {
+  _checkKey(key) {
+    if (/"/.test(key)) {
+      throw 'Key must not contain "!';
+    }
+  }
+
+  _decideOperator(key, op, val, newVals, keyIsQuoted = false) {
+    if (!keyIsQuoted) {
+      this._checkKey(key);
+      key = `"${key}"`;
+    }
     switch (op) {
       case "any":
         newVals.push(val);
-        return `$${this._counter++} = ANY("${key}")`;
+        return `$${this._counter++} = ANY(${key})`;
       case "in":
         if (val.length === 0) {
           return " FALSE ";
         }
         val.forEach((v) => newVals.push(v));
         return (
-          `"${key}" IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
+          `${key} IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
         );
       case "of": {
         const path = this._buildJsonPath(key, val.path, newVals);
-        newVals.push(val.value);
-        return `${path} = $${this._counter++}`;
+        if (typeof val.value === "object") {
+          return this._decideOperator(
+            path,
+            val.value.op,
+            val.value.val,
+            newVals,
+            true
+          );
+        } else {
+          newVals.push(val.value);
+          return `${path} = $${this._counter++}`;
+        }
       }
       case "lte":
         newVals.push(val);
-        return `"${key}" <= $${this._counter++}`;
+        return `${key} <= $${this._counter++}`;
       case "lt":
         newVals.push(val);
-        return `"${key}" < $${this._counter++}`;
+        return `${key} < $${this._counter++}`;
       case "gte":
         newVals.push(val);
-        return `"${key}" >= $${this._counter++}`;
+        return `${key} >= $${this._counter++}`;
       case "gt":
         newVals.push(val);
-        return `"${key}" > $${this._counter++}`;
+        return `${key} > $${this._counter++}`;
       case "like":
         newVals.push(val);
-        return `"${key}" LIKE $${this._counter++}`;
+        return `${key} LIKE $${this._counter++}`;
       case "and":
         return val
-          .map((v) => this._decideOperator(key, v.op, v.val, newVals))
+          .map((v) => this._decideOperator(key, v.op, v.val, newVals, true))
           .join(" AND ");
       default:
         throw new Error("ERROR, operator not implemented: " + op);
