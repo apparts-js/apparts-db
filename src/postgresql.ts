@@ -6,11 +6,10 @@ import DBS from "./postgresql/DBS";
 
 let pool: undefined | Pool;
 
-const connectPG = function (
-  c: PGConfig,
-  next: (error: boolean | any, dbs?: DBS) => void,
-  error?: (err: any) => void
-) {
+export const createPool = async (c: PGConfig) => {
+  if (pool) {
+    return pool;
+  }
   pool = new Pool({
     host: c.host,
     port: c.port,
@@ -28,7 +27,7 @@ const connectPG = function (
       `Postgres DB-connection failed for host ${c.host}:${c.port},` +
         ` ${c.user}@${c.db} with ERROR: ${err}`
     );
-    error && error(err);
+    throw new Error(err);
   });
 
   if (c.bigIntAsNumber) {
@@ -38,16 +37,25 @@ const connectPG = function (
     });
   }
 
-  // Test connection
-  pool
-    .connect()
-    .then((client) => {
-      client.release();
-      next(false, new DBS(pool, c));
-    })
-    .catch((e) => {
-      next(e);
-    });
+  return pool;
 };
 
-export default connectPG;
+export const shutdownPool = async () => {
+  if (!pool) {
+    return;
+  }
+  const localPool = pool;
+  pool = null;
+  await localPool.end();
+};
+
+export const connectPG = async (c: PGConfig) => {
+  const pool = await createPool(c);
+  return new DBS(pool, c);
+};
+
+export const createTransaction = async (c: PGConfig) => {
+  const pool = await createPool(c);
+  const client = pool.connect();
+  return new DBS(client, c);
+};

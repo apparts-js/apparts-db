@@ -154,12 +154,6 @@ class DBS {
     throw new Error("ERROR: Type not found: " + JSON.stringify(type));
   }
 
-  shutdown(next: () => {}) {
-    this._dbs.end(() => {
-      next && next();
-    });
-  }
-
   async raw(query: string, params: any[]) {
     try {
       return await this._dbs.query(query, params);
@@ -187,6 +181,9 @@ class DBS {
     }
   }
   /* END DBS FUNCTIONS */
+
+  here must be something to commit/rollback transaction
+
 }
 
 export default DBS;
