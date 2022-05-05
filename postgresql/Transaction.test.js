@@ -193,7 +193,7 @@ CREATE TABLE "testTable3" (
         {
           object1: {
             object2: { tokens: "abc" },
-            aNumber: 3,
+            aNumber: 333,
             aBool: true,
             aString: "Abc",
           },
@@ -354,7 +354,8 @@ CREATE TABLE "testTable3" (
                 op: "of",
                 val: {
                   path: ["aNumber"],
-                  value: { op: "gt", val: 2 },
+                  cast: "number",
+                  value: { op: "gt", val: 44 },
                 },
               },
               {
@@ -368,7 +369,7 @@ CREATE TABLE "testTable3" (
           },
         })
         .toArray()
-    ).resolves.toMatchObject([{ object1: { aNumber: 3 } }]);
+    ).resolves.toMatchObject([{ object1: { aNumber: 333 } }]);
   });
 
   test("Should findByIds", async () => {

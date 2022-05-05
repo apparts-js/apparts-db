@@ -113,8 +113,18 @@ class Transaction {
       case "of": {
         const path = this._buildJsonPath(key, val.path, newVals);
         if (typeof val.value === "object") {
+          let castedPath = path;
+          if (val.cast) {
+            castedPath = `(${path})::${
+              val.cast === "number"
+                ? "double precision"
+                : val.value.cast === "boolean"
+                ? "bool"
+                : "text"
+            }`;
+          }
           return this._decideOperator(
-            path,
+            castedPath,
             val.value.op,
             val.value.val,
             newVals,
