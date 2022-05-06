@@ -131,9 +131,22 @@ the filter should be applied against. The value is either a value or
 an object that has ~op~ and ~val~ keys. ~op~ can be one of
 - ~in~ :: ~val~ then must be an array of possible values. The filter
   accepts values that appear in the ~val~ array.
-- ~of~ :: ~val~ is an object with the keys ~path~ (an array of keys for the nested json) 
-  and ~value~, which can either be a value to directly compare, or
-  another filter.
+- ~of~ :: ~val~ is an object with the keys
+  - ~path~ (an array of keys for the nested json) 
+  - ~value~, either a value to directly compare to, or another filter
+  - ~cast~ (optional), a casting operator (Postgresql only returns
+    strings for values from JSON. For numeric comparison you need to
+    cast to number). Can be ~"number"~ or ~"boolean"~.
+  #+BEGIN_SRC json
+  {
+    "op": "of",
+    "val": {
+        "path": ["<key 1>"],
+        "value": // value or filter operator here,
+        "cast": "number" | "boolean" | undefined
+    }
+  }
+  #+END_SRC
 - ~lte~ :: Less than, or equals. ~val~ must be a number, against the value
   is combined.
 - ~lt~ :: Less than. ~val~ must be a number, against the value
