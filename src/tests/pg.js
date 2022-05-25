@@ -1,5 +1,5 @@
 const { Client } = require("pg");
-const connect = require("../").default;
+const { connect } = require("../");
 const _dbConfig = require("@apparts/config").get("db-test-config");
 const dbConfig = {
   ..._dbConfig,
@@ -70,31 +70,18 @@ module.exports = ({ testName }) => {
       },
     },
     setupDbs: async (config) => {
-      return await new Promise((res) => {
-        const next = (e, c) => {
-          if (e) {
-            throw e;
-          }
-          res(c);
-        };
-        connect(
-          {
-            ...dbConfig,
-            postgresql: {
-              ...dbConfig.postgresql,
-              db: dbName,
-              ...config,
-            },
-          },
-          next
-        );
+      return await connect({
+        ...dbConfig,
+        postgresql: {
+          ...dbConfig.postgresql,
+          db: dbName,
+          ...config,
+        },
       });
     },
 
     teardownDbs: async (dbs) => {
-      await new Promise((res) => {
-        dbs.shutdown(res);
-      });
+      await dbs.shutdown();
     },
   };
 };

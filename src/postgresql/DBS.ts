@@ -1,7 +1,9 @@
 import { Pool } from "pg";
 import { PGConfig } from "../Config";
 
-import Transaction, { Params, Id } from "./Transaction";
+import Query from "./Query";
+import Transaction from "./Transaction";
+import { Params, Id } from "./types";
 
 class DBS {
   _dbs: Pool;
@@ -30,10 +32,25 @@ class DBS {
 
   /* DBS FUNCTIONS */
   collection(col: string) {
-    return new Transaction(this._dbs, col, {
+    return new Query(this._dbs, col, {
       config: this._config,
       log: (...ps) => this._log(...ps),
     });
+  }
+
+  async transaction(fn: (t: Transaction) => Promise<unknown>) {
+    const client = await this._dbs.connect();
+    const transaction = new Transaction(client, {
+      config: this._config,
+      log: (...ps) => this._log(...ps),
+    });
+    try {
+      await fn(transaction);
+      await transaction.commit();
+    } catch (e) {
+      await transaction.rollback();
+    }
+    await transaction.end();
   }
 
   /**
@@ -180,10 +197,16 @@ class DBS {
       }
     }
   }
+
+  async shutdown() {
+    return new Promise<void>((res) => {
+      this._dbs.end(() => {
+        res();
+      });
+    });
+  }
+
   /* END DBS FUNCTIONS */
-
-  here must be something to commit/rollback transaction
-
 }
 
 export default DBS;

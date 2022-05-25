@@ -1,16 +1,11 @@
 "use strict";
 
-import { PGConfig } from "./Config";
+import { PGConfig } from "../Config";
 import { Pool, types as pgTypes } from "pg";
-import DBS from "./postgresql/DBS";
-
-let pool: undefined | Pool;
+import DBS from "./DBS";
 
 export const createPool = async (c: PGConfig) => {
-  if (pool) {
-    return pool;
-  }
-  pool = new Pool({
+  const pool = new Pool({
     host: c.host,
     port: c.port,
     user: c.user,
@@ -27,7 +22,7 @@ export const createPool = async (c: PGConfig) => {
       `Postgres DB-connection failed for host ${c.host}:${c.port},` +
         ` ${c.user}@${c.db} with ERROR: ${err}`
     );
-    throw new Error(err);
+    throw err;
   });
 
   if (c.bigIntAsNumber) {
@@ -40,22 +35,14 @@ export const createPool = async (c: PGConfig) => {
   return pool;
 };
 
-export const shutdownPool = async () => {
-  if (!pool) {
-    return;
-  }
-  const localPool = pool;
-  pool = null;
-  await localPool.end();
-};
-
 export const connectPG = async (c: PGConfig) => {
   const pool = await createPool(c);
   return new DBS(pool, c);
 };
 
-export const createTransaction = async (c: PGConfig) => {
+/*export const createTransaction = async (c: PGConfig) => {
   const pool = await createPool(c);
   const client = pool.connect();
   return new DBS(client, c);
 };
+*/
