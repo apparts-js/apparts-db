@@ -9,7 +9,7 @@ type LogFunc = (
 ) => void;
 export type Params = { [u: string]: any };
 export type Id = string | number;
-type Order = { key: string; dir: "ASC" | "DESC" }[];
+type Order = { key: string; dir: "ASC" | "DESC"; path?: string[] }[];
 
 class Transaction {
   _dbs: Pool;
@@ -41,10 +41,19 @@ class Transaction {
       q +=
         " ORDER BY" +
         order
-          .map(
-            (arr) => ` "${arr.key}"
-    ${arr.dir}`
-          )
+          .map((arr) => {
+            this._checkKey(arr.key);
+            if (arr.path) {
+              const path = this._buildJsonPath(
+                `"${arr.key}"`,
+                arr.path || [],
+                newVals
+              );
+              return ` ${path} ${arr.dir === "ASC" ? "ASC" : "DESC"} `;
+            } else {
+              return ` "${arr.key}" ${arr.dir === "ASC" ? "ASC" : "DESC"} `;
+            }
+          })
           .join(" , ");
     }
     if (limit) {
@@ -82,56 +91,100 @@ class Transaction {
     );
   }
 
-  _decideOperator(key: string, op: string, val: any, newVals: any[]) {
+  _buildJsonPath(key, path, newVals) {
+    if (path.length < 1) {
+      throw new Error(
+        "ERROR, JSON path requires at least one path element. You submitted []."
+      );
+    }
+
+    path.forEach((v) => newVals.push(v));
+
+    return (
+      `${key}` +
+      (path.length === 1
+        ? ""
+        : "->" +
+          path
+            .slice(0, -1)
+            .map(() => `$${this._counter++}`)
+            .join("->")) +
+      `->>$${this._counter++} `
+    );
+  }
+
+  _checkKey(key) {
+    if (/"/.test(key)) {
+      throw 'Key must not contain "!';
+    }
+  }
+
+  _decideOperator(
+    key: string,
+    op: string,
+    val: any,
+    newVals: any[],
+    keyIsQuoted = false
+  ) {
+    if (!keyIsQuoted) {
+      this._checkKey(key);
+      key = `"${key}"`;
+    }
     switch (op) {
       case "any":
         newVals.push(val);
-        return `$${this._counter++} = ANY("${key}")`;
+        return `$${this._counter++} = ANY(${key})`;
       case "in":
         if (val.length === 0) {
           return " FALSE ";
         }
         val.forEach((v: any) => newVals.push(v));
         return (
-          `"${key}" IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
+          `${key} IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
         );
-      case "of":
-        if (val.path.length < 1) {
-          throw new Error(
-            "ERROR, operator 'of' requires at least one path element. You submitted []."
+      case "of": {
+        const path = this._buildJsonPath(key, val.path, newVals);
+        if (typeof val.value === "object") {
+          let castedPath = path;
+          if (val.cast) {
+            castedPath = `(${path})::${
+              val.cast === "number"
+                ? "double precision"
+                : val.value.cast === "boolean"
+                ? "bool"
+                : "text"
+            }`;
+          }
+          return this._decideOperator(
+            castedPath,
+            val.value.op,
+            val.value.val,
+            newVals,
+            true
           );
+        } else {
+          newVals.push(val.value);
+          return `${path} = $${this._counter++}`;
         }
-        val.path.forEach((v: any) => newVals.push(v));
-        newVals.push(val.value);
-        return (
-          `"${key}"` +
-          (val.path.length === 1
-            ? ""
-            : "->" +
-              val.path
-                .slice(0, -1)
-                .map(() => `$${this._counter++}`)
-                .join("->")) +
-          `->>$${this._counter++} = $${this._counter++}`
-        );
+      }
       case "lte":
         newVals.push(val);
-        return `"${key}" <= $${this._counter++}`;
+        return `${key} <= $${this._counter++}`;
       case "lt":
         newVals.push(val);
-        return `"${key}" < $${this._counter++}`;
+        return `${key} < $${this._counter++}`;
       case "gte":
         newVals.push(val);
-        return `"${key}" >= $${this._counter++}`;
+        return `${key} >= $${this._counter++}`;
       case "gt":
         newVals.push(val);
-        return `"${key}" > $${this._counter++}`;
+        return `${key} > $${this._counter++}`;
       case "like":
         newVals.push(val);
-        return `"${key}" LIKE $${this._counter++}`;
+        return `${key} LIKE $${this._counter++}`;
       case "and":
         return (val as { op: string; val: any }[])
-          .map((v) => this._decideOperator(key, v.op, v.val, newVals))
+          .map((v) => this._decideOperator(key, v.op, v.val, newVals, true))
           .join(" AND ");
       default:
         throw new Error("ERROR, operator not implemented: " + op);
