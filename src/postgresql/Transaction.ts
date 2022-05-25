@@ -9,7 +9,7 @@ type LogFunc = (
 ) => void;
 export type Params = { [u: string]: any };
 export type Id = string | number;
-type Order = { key: string; dir: "ASC" | "DESC" }[];
+type Order = { key: string; dir: "ASC" | "DESC"; path?: string[] }[];
 
 class Transaction {
   _dbs: Pool;
