@@ -33,7 +33,7 @@ const connectPG = function (
 
   if (c.bigIntAsNumber) {
     // Return Bigint and stuff as number, not as string
-    pgTypes.setTypeParser(20, function (val) {
+    pgTypes.setTypeParser(20, (val) => {
       return parseInt(val);
     });
   }
