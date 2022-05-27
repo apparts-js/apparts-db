@@ -10,6 +10,6 @@ export abstract class GenericDBS {
   abstract transaction<T>(
     fn: (t: GenericTransaction) => Promise<T>
   ): Promise<T>;
-  abstract raw<T>(query: string, params: any[]): Promise<Result<T>>;
+  abstract raw<T>(query: string, params?: any[]): Promise<Result<T>>;
   abstract shutdown(): Promise<void>;
 }

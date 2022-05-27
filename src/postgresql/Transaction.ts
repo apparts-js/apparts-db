@@ -17,7 +17,7 @@ class Transaction extends GenericTransaction {
     this._dbs.query("BEGIN;");
   }
 
-  async raw<T>(query: string, params: any[]): Promise<Result<T>> {
+  async raw<T>(query: string, params: any[] = []): Promise<Result<T>> {
     try {
       return await this._dbs.query<T>(query, params);
     } catch (e) {

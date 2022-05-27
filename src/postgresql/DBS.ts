@@ -173,7 +173,7 @@ class DBS extends GenericDBS {
     throw new Error("ERROR: Type not found: " + JSON.stringify(type));
   }
 
-  async raw(query: string, params: any[]) {
+  async raw(query: string, params: any[] = []) {
     try {
       return await this._dbs.query(query, params);
     } catch (e) {
