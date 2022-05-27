@@ -9,3 +9,5 @@ export async function connect(c: Config) {
     throw "Config references DB-engine that does not exist: " + c.use;
   }
 }
+
+export * from "./generic";

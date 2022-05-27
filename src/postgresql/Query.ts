@@ -1,9 +1,10 @@
-import { Pool, PoolClient, QueryResult } from "pg";
+import { Pool, PoolClient } from "pg";
 import { PGConfig } from "../Config";
 
-import { LogFunc, Params, Order } from "./types";
+import { LogFunc } from "./types";
+import { Params, Order, Result, GenericQuery } from "../generic";
 
-class Query {
+class Query extends GenericQuery {
   _dbs: Pool | PoolClient;
   _table: string;
   _counter: number;
@@ -11,13 +12,13 @@ class Query {
   _log: LogFunc;
   _query?: string;
   _params?: any[];
-  _result?: Promise<QueryResult<any[]>>;
 
   constructor(
     pool: Pool | PoolClient,
     col: string,
     dbs: { config: PGConfig; log: LogFunc }
   ) {
+    super();
     this._dbs = pool;
     this._table = col;
     this._counter = 1;
@@ -25,7 +26,7 @@ class Query {
     this._log = (...ps) => dbs.log(...ps);
   }
 
-  find(params: Params, limit?: number, offset?: number, order?: Order) {
+  find(params: Params, limit?: number, offset?: number, order?: Order): this {
     let q = `SELECT * FROM "${this._table}" `;
     const newVals = [];
     q += this._buildWhere(params, newVals);
@@ -200,10 +201,9 @@ class Query {
     return this.find(params, limit, offset, order);
   }
 
-  toArray() {
-    this._result = this._dbs.query(this._query, this._params);
-
-    return this._result
+  toArray<T>(): Promise<T[]> {
+    return this._dbs
+      .query<T>(this._query, this._params)
       .then((res) => {
         return Promise.resolve(res.rows);
       })
@@ -270,7 +270,7 @@ class Query {
       });
   }
 
-  updateOne(filter: Params, c: { [p: string]: any }) {
+  async updateOne(filter: Params, c: { [p: string]: any }) {
     return this.update(filter, c);
   }
 
@@ -304,7 +304,7 @@ class Query {
     }
   }
 
-  async remove(params: Params) {
+  async remove<T>(params: Params): Promise<Result<T>> {
     let q = `DELETE FROM "${this._table}" `;
     const newVals = [];
     q += this._buildWhere(params, newVals);

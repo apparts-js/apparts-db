@@ -3,15 +3,16 @@ import { PGConfig } from "../Config";
 
 import Query from "./Query";
 import Transaction from "./Transaction";
-import { Params, Id } from "./types";
+import { Id, Params, GenericDBS } from "../generic";
 
-class DBS {
+class DBS extends GenericDBS {
   _dbs: Pool;
   _config: PGConfig;
   _query?: string;
   _params?: any[];
 
   constructor(dbs: Pool, config: PGConfig) {
+    super();
     this._dbs = dbs;
     this._config = config;
   }
