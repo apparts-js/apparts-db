@@ -2,7 +2,7 @@
   "name": "@apparts/db",
   "version": "3.1.1",
   "description": "Database drivers for multiple databases",
-  "module": "src/index.ts",
+  "types": "build/index.d.ts",
   "main": "build/index.js",
   "scripts": {
     "prepublishOnly": "npm run clean && npm ci  && npm run ci && npm run build",
