@@ -132,8 +132,6 @@ class DBS {
     }
   }
 
-  createUser() {}
-
   convertType(type: { type: string; maxLength?: boolean; auto?: boolean }) {
     switch (type.type) {
       case "int":

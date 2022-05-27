@@ -240,9 +240,8 @@ class Query {
     if (returning && returning.length > 0) {
       q += " RETURNING " + returning.map((r) => `"${r}"`).join(",");
     }
-    const params = [].concat.apply(
-      [],
-      content.map((c) =>
+    const params = [].concat(
+      ...content.map((c) =>
         keys.map((k) =>
           Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]
         )

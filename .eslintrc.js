@@ -1,3 +1,10 @@
+const rules = {
+  "no-var": "error",
+  "prefer-const": "error",
+  "no-unneeded-ternary": "error",
+  "prefer-arrow-callback": "error",
+};
+
 module.exports = {
   env: {
     node: true,
@@ -29,13 +36,11 @@ module.exports = {
         project: "tsconfig.json",
         sourceType: "module",
       },
+      rules: {
+        ...rules,
+        "@typescript-eslint/no-explicit-any": 0,
+      },
     },
   ],
-  rules: {
-    "no-var": "error",
-    "prefer-const": "error",
-    "no-unneeded-ternary": "error",
-    "prefer-arrow-callback": "error",
-    "@typescript-eslint/no-explicit-any": 0,
-  },
+  rules,
 };

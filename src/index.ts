@@ -9,9 +9,3 @@ export async function connect(c: Config) {
     throw "Config references DB-engine that does not exist: " + c.use;
   }
 }
-
-/*here we need more stuff like
-  - createPool
-  - closePool
-  - newTransaction
-*/
