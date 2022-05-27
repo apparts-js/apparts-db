@@ -7,9 +7,9 @@ export abstract class GenericDBS {
   abstract fromId(id: Id): Id;
   abstract toId(id: Id): Id;
   abstract collection(col: string): GenericQuery;
-  abstract transaction(
-    fn: (t: GenericTransaction) => Promise<unknown>
-  ): Promise<void>;
+  abstract transaction<T>(
+    fn: (t: GenericTransaction) => Promise<T>
+  ): Promise<T>;
   abstract raw<T>(query: string, params: any[]): Promise<Result<T>>;
   abstract shutdown(): Promise<void>;
 }

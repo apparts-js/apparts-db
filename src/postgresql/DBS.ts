@@ -39,19 +39,21 @@ class DBS extends GenericDBS {
     });
   }
 
-  async transaction(fn: (t: Transaction) => Promise<unknown>) {
+  async transaction<T>(fn: (t: Transaction) => Promise<T>) {
     const client = await this._dbs.connect();
     const transaction = new Transaction(client, {
       config: this._config,
       log: (...ps) => this._log(...ps),
     });
+    let result: T = null;
     try {
-      await fn(transaction);
+      result = await fn(transaction);
       await transaction.commit();
     } catch (e) {
       await transaction.rollback();
     }
     await transaction.end();
+    return result;
   }
 
   /**
