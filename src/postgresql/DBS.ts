@@ -45,15 +45,16 @@ class DBS extends GenericDBS {
       config: this._config,
       log: (...ps) => this._log(...ps),
     });
-    let result: T = null;
     try {
-      result = await fn(transaction);
+      const result = await fn(transaction);
       await transaction.commit();
+      return result;
     } catch (e) {
       await transaction.rollback();
+      throw e;
+    } finally {
+      await transaction.end();
     }
-    await transaction.end();
-    return result;
   }
 
   /**
