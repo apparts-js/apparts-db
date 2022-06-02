@@ -442,6 +442,16 @@ describe("Filters", () => {
         })
         .toArray()
     ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
+
+    await expect(
+      dbs
+        .collection("testTableWithOpt")
+        .find({
+          number: 1337,
+          optionalVal: { op: "exists", val: false },
+        })
+        .toArray()
+    ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
   });
 
   it("Should find not null value", async () => {
@@ -450,7 +460,7 @@ describe("Filters", () => {
         .collection("testTableWithOpt")
         .find({
           number: 1337,
-          optionalVal: { op: "exists" },
+          optionalVal: { op: "exists", val: true },
         })
         .toArray()
     ).resolves.toStrictEqual([{ id: 1, number: 1337, optionalVal: 7 }]);

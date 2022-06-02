@@ -169,8 +169,9 @@ an object that has ~op~ and ~val~ keys. ~op~ can be one of
 - ~like~ :: Compares strings with the SQL like operator.
 - ~and~ :: Combines multiple filters and-wise. ~val~ must be an array of
   objects, that have ~val~ and ~op~ keys of the form described here.
-- exists :: Checks if an optional field is not null. ~val~ can be left
-  empty. To check for non-existence, compare the value to ~null~ directly.
+- exists :: Checks if an optional field is ~null~ or not. If ~val~ is
+  ~true~, than the field must be not ~null~. If ~val~ is ~false~, than the
+  field must be ~null~;
   
   
 **** Filter Grammar
