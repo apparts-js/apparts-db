@@ -1,6 +1,6 @@
 {
   "name": "@apparts/db",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "description": "Database drivers for multiple databases",
   "types": "build/index.d.ts",
   "main": "build/index.js",
