@@ -72,7 +72,9 @@ class Query extends GenericQuery {
       "WHERE " +
       keys
         .map((key, i) => {
-          if (typeof vals[i] !== "object") {
+          if (vals[i] === null) {
+            return `"${key}" IS NULL `;
+          } else if (typeof vals[i] !== "object") {
             newVals.push(vals[i]);
             return `"${key}" = $${this._counter++}`;
           } else {

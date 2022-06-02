@@ -163,7 +163,6 @@ CREATE TABLE "testTable2" (
        "testTableId" INT NOT NULL,
        FOREIGN KEY ("testTableId") REFERENCES "testTable"(id)
 )`);
-
     await dbs.raw(`
 CREATE TABLE "testTable3" (
        id SERIAL PRIMARY KEY,
@@ -382,6 +381,34 @@ CREATE TABLE "testTable3" (
         })
         .toArray()
     ).resolves.toMatchObject([{ object1: { aNumber: 333 } }]);
+  });
+
+  it("should find null value", async () => {
+    await dbs.raw(`
+CREATE TABLE "testTableWithOpt" (
+       id SERIAL PRIMARY KEY,
+       number INT NOT NULL,
+       "optionalVal" INT
+)`);
+    await dbs.collection("testTableWithOpt").insert([
+      {
+        number: 1337,
+        optionalVal: 7,
+      },
+      {
+        number: 1337,
+      },
+    ]);
+
+    await expect(
+      dbs
+        .collection("testTableWithOpt")
+        .find({
+          number: 1337,
+          optionalVal: null,
+        })
+        .toArray()
+    ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
   });
 
   test("Should findByIds", async () => {
