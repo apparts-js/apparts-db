@@ -161,6 +161,12 @@ CREATE TABLE "testTable3" (
        id SERIAL PRIMARY KEY,
        "object1" json NOT NULL
 )`);
+  await dbs.raw(`
+CREATE TABLE "testTableWithOpt" (
+       id SERIAL PRIMARY KEY,
+       number INT NOT NULL,
+       "optionalVal" INT
+)`);
 });
 afterAll(async () => {
   await teardownDbs(dbs);
@@ -417,12 +423,6 @@ describe("Filters", () => {
   });
 
   it("Should find null value", async () => {
-    await dbs.raw(`
-CREATE TABLE "testTableWithOpt" (
-       id SERIAL PRIMARY KEY,
-       number INT NOT NULL,
-       "optionalVal" INT
-)`);
     await dbs.collection("testTableWithOpt").insert([
       {
         number: 1337,
@@ -442,6 +442,18 @@ CREATE TABLE "testTableWithOpt" (
         })
         .toArray()
     ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
+  });
+
+  it("Should find not null value", async () => {
+    await expect(
+      dbs
+        .collection("testTableWithOpt")
+        .find({
+          number: 1337,
+          optionalVal: { op: "exists" },
+        })
+        .toArray()
+    ).resolves.toStrictEqual([{ id: 1, number: 1337, optionalVal: 7 }]);
   });
 });
 describe("FindByIds", () => {

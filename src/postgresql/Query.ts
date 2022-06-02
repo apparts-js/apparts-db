@@ -126,6 +126,8 @@ class Query extends GenericQuery {
       key = `"${key}"`;
     }
     switch (op) {
+      case "exists":
+        return `${key} IS NOT NULL `;
       case "any":
         newVals.push(val);
         return `$${this._counter++} = ANY(${key})`;
