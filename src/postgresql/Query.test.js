@@ -17,7 +17,7 @@ describe("Log on error behavior", () => {
     logMock.mockRestore();
   });
 
-  test("Should log on updateOne", async () => {
+  it("Should log on updateOne", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -36,7 +36,7 @@ describe("Log on error behavior", () => {
       ],
     ]);
   });
-  test("Should log on remove", async () => {
+  it("Should log on remove", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -53,7 +53,7 @@ describe("Log on error behavior", () => {
       ],
     ]);
   });
-  test("Should log on drop", async () => {
+  it("Should log on drop", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -71,7 +71,7 @@ describe("Log on error behavior", () => {
     ]);
   });
 
-  test("Should log on insert", async () => {
+  it("Should log on insert", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -89,7 +89,7 @@ describe("Log on error behavior", () => {
     ]);
   });
 
-  test("Should log on find", async () => {
+  it("Should log on find", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -106,7 +106,7 @@ describe("Log on error behavior", () => {
       ],
     ]);
   });
-  test("Should log on findById", async () => {
+  it("Should log on findById", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -123,7 +123,7 @@ describe("Log on error behavior", () => {
       ],
     ]);
   });
-  test("Should log on findByIds", async () => {
+  it("Should log on findByIds", async () => {
     const t = dbs.collection("testTable");
     t._dbs = { query };
 
@@ -142,63 +142,67 @@ describe("Log on error behavior", () => {
   });
 });
 
-describe("Postgresql Query", () => {
-  let dbs;
-  beforeAll(async () => {
-    dbs = await setupDbs({ logs: "errors" });
-  });
-  afterAll(async () => {
-    await teardownDbs(dbs);
-  });
-
-  test("Should insert", async () => {
-    await dbs.raw(`
+let dbs;
+beforeAll(async () => {
+  dbs = await setupDbs({ logs: "errors" });
+  await dbs.raw(`
 CREATE TABLE "testTable" (
        id SERIAL PRIMARY KEY,
        number INT NOT NULL
 )`);
-    await dbs.raw(`
+  await dbs.raw(`
 CREATE TABLE "testTable2" (
        id SERIAL PRIMARY KEY,
        "testTableId" INT NOT NULL,
        FOREIGN KEY ("testTableId") REFERENCES "testTable"(id)
 )`);
-    await dbs.raw(`
+  await dbs.raw(`
 CREATE TABLE "testTable3" (
        id SERIAL PRIMARY KEY,
        "object1" json NOT NULL
 )`);
+});
+afterAll(async () => {
+  await teardownDbs(dbs);
+});
 
+describe("Insert", () => {
+  it("Should insert nothing", async () => {
     await expect(dbs.collection("testTable").insert([])).resolves.toMatchObject(
       []
     );
-
+  });
+  it("Should insert one thing", async () => {
     await expect(
       dbs.collection("testTable").insert([{ number: 100 }])
     ).resolves.toMatchObject([{ id: 1 }]);
+  });
 
+  it("Should insert multiple things", async () => {
     await expect(
       dbs.collection("testTable").insert([{ number: 101 }, { number: 102 }])
     ).resolves.toMatchObject([{ id: 2 }, { id: 3 }]);
-
+  });
+  it("Should fail to insert non-unique content", async () => {
     await expect(
       dbs.collection("testTable").insert([{ number: 100, id: 1 }])
     ).rejects.toMatchObject({
       msg: "ERROR, tried to insert, not unique",
       _code: 1,
     });
-
+  });
+  it("Should fail to insert with unmet foreign constraint", async () => {
     await expect(
       dbs.collection("testTable2").insert([{ testTableId: 10000 }])
     ).rejects.toMatchObject({
       msg: "ERROR, tried to insert, constraints not met",
       _code: 3,
     });
-
     await expect(
       dbs.collection("testTable2").find({}).toArray()
     ).resolves.toStrictEqual([]);
-
+  });
+  it("Should insert json", async () => {
     await expect(
       dbs.collection("testTable3").insert([
         {
@@ -216,24 +220,33 @@ CREATE TABLE "testTable3" (
       dbs.collection("testTable3").insert([{ object1: { tokens: "abc" } }])
     ).resolves.toStrictEqual([{ id: 2 }]);
   });
+});
 
-  test("Should findById/find", async () => {
+describe("Find / findById", () => {
+  it("Should findById", async () => {
     await expect(
       dbs.collection("testTable").findById({ id: 1 }).toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
-
+  });
+  it("Should findById nothing", async () => {
     await expect(
       dbs.collection("testTable").findById({ id: 100 }).toArray()
     ).resolves.toMatchObject([]);
+  });
 
+  it("Should findById with multiple keys given", async () => {
     await expect(
       dbs.collection("testTable").findById({ id: 1, number: 100 }).toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
+  });
 
+  it("Should findById nothing with multiple keys", async () => {
     await expect(
       dbs.collection("testTable").findById({ id: 1, number: 101 }).toArray()
     ).resolves.toMatchObject([]);
+  });
 
+  it("Should findById everything", async () => {
     await expect(
       dbs.collection("testTable").findById({}).toArray()
     ).resolves.toMatchObject([
@@ -241,15 +254,23 @@ CREATE TABLE "testTable3" (
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
+  });
 
+  it("Should findById with limit", async () => {
     await expect(
       dbs.collection("testTable").findById({}, 1).toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
+  });
 
+  it("Should findById with limit and offset", async () => {
     await expect(
       dbs.collection("testTable").findById({}, 1, 1).toArray()
     ).resolves.toMatchObject([{ id: 2, number: 101 }]);
+  });
+});
 
+describe("Filters", () => {
+  it("Should findById with gt operator", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -259,7 +280,9 @@ CREATE TABLE "testTable3" (
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
+  });
 
+  it("Should findById with lt operator", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -269,7 +292,9 @@ CREATE TABLE "testTable3" (
       { id: 1, number: 100 },
       { id: 2, number: 101 },
     ]);
+  });
 
+  it("Should findByIds with gte operator", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -279,7 +304,8 @@ CREATE TABLE "testTable3" (
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
-
+  });
+  it("Should findByIds with lte operator", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -289,7 +315,9 @@ CREATE TABLE "testTable3" (
       { id: 1, number: 100 },
       { id: 2, number: 101 },
     ]);
+  });
 
+  it("Should find with of operator, multiple levels deep", async () => {
     await expect(
       dbs
         .collection("testTable3")
@@ -306,7 +334,8 @@ CREATE TABLE "testTable3" (
     ).resolves.toMatchObject([
       { id: 1, object1: { object2: { tokens: "abc" } } },
     ]);
-
+  });
+  it("Should find with of operator, one level deep", async () => {
     await expect(
       dbs
         .collection("testTable3")
@@ -321,7 +350,8 @@ CREATE TABLE "testTable3" (
         })
         .toArray()
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
-
+  });
+  it("Should fail to find with of operator, no level deep", async () => {
     expect(async () => {
       await dbs
         .collection("testTable3")
@@ -338,7 +368,8 @@ CREATE TABLE "testTable3" (
     }).rejects.toThrow(
       "ERROR, JSON path requires at least one path element. You submitted []."
     );
-
+  });
+  it("Should find with of operator, with sub operator", async () => {
     await expect(
       dbs
         .collection("testTable3")
@@ -353,7 +384,9 @@ CREATE TABLE "testTable3" (
         })
         .toArray()
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
+  });
 
+  it("find with multiple of operators and suboperator and boolean", async () => {
     await expect(
       dbs
         .collection("testTable3")
@@ -383,7 +416,7 @@ CREATE TABLE "testTable3" (
     ).resolves.toMatchObject([{ object1: { aNumber: 333 } }]);
   });
 
-  it("should find null value", async () => {
+  it("Should find null value", async () => {
     await dbs.raw(`
 CREATE TABLE "testTableWithOpt" (
        id SERIAL PRIMARY KEY,
@@ -410,40 +443,46 @@ CREATE TABLE "testTableWithOpt" (
         .toArray()
     ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
   });
-
-  test("Should findByIds", async () => {
+});
+describe("FindByIds", () => {
+  it("Should findByIds with array", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1] })
         .toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
-
+  });
+  it("Should findByIds without array", async () => {
     await expect(
       dbs.collection("testTable").findByIds({ id: 1 }).toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
-
+  });
+  it("Should findByIds nothing without array", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [100] })
         .toArray()
     ).resolves.toMatchObject([]);
-
+  });
+  it("Should findByIds with multiple arrays", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1], number: [100] })
         .toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
-
+  });
+  it("Should findByIds nothing with multiple arrays", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1], number: [101] })
         .toArray()
     ).resolves.toMatchObject([]);
-
+  });
+  it("Should findByIds everything", async () => {
     await expect(
       dbs.collection("testTable").findByIds({}).toArray()
     ).resolves.toMatchObject([
@@ -451,7 +490,8 @@ CREATE TABLE "testTableWithOpt" (
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
-
+  });
+  it("Should findByIds with array with multiple ids", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -462,27 +502,32 @@ CREATE TABLE "testTableWithOpt" (
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
-
+  });
+  it("Should findByIds with array with multiple ids and limit", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3] }, 1)
         .toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
-
+  });
+  it("Should findByIds with array with multiple ids and limit and offset", async () => {
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3] }, 1, 1)
         .toArray()
     ).resolves.toMatchObject([{ id: 2, number: 101 }]);
-
+  });
+  it("Should findByIds with empty array", async () => {
     await expect(
       dbs.collection("testTable").findByIds({ id: [] }).toArray()
     ).resolves.toMatchObject([]);
   });
+});
 
-  test("Should find in order", async () => {
+describe("Find ordered", () => {
+  it("Should find in desc order", async () => {
     await expect(
       dbs.collection("testTable").insert([{ number: 100 }])
     ).resolves.toMatchObject([{ id: 4 }]);
@@ -498,7 +543,8 @@ CREATE TABLE "testTableWithOpt" (
       { id: 2, number: 101 },
       { id: 1, number: 100 },
     ]);
-
+  });
+  it("Should find in asc order", async () => {
     await expect(
       dbs
         .collection("testTable")
@@ -514,8 +560,10 @@ CREATE TABLE "testTableWithOpt" (
       { id: 3, number: 102 },
     ]);
   });
+});
 
-  test("Should update/updateOne", async () => {
+describe("Update", () => {
+  it("Should updateOne", async () => {
     await expect(
       dbs.collection("testTable").updateOne({ number: 100 }, { number: 1000 })
     ).resolves.toMatchObject({ rowCount: 2 });
@@ -537,7 +585,8 @@ CREATE TABLE "testTableWithOpt" (
       { id: 4, number: 1000 },
       { id: 5, number: 3000 },
     ]);
-
+  });
+  it("Should updateOne all", async () => {
     await expect(
       dbs.collection("testTable").updateOne({}, { number: 2000 })
     ).resolves.toMatchObject({ rowCount: 4 });
@@ -552,7 +601,8 @@ CREATE TABLE "testTableWithOpt" (
       { id: 3, number: 2000 },
       { id: 5, number: 2000 },
     ]);
-
+  });
+  it("Should fail to updateOne due to uniqueness constraint", async () => {
     await expect(
       dbs.collection("testTable").updateOne({}, { id: 1 })
     ).rejects.toMatchObject({
@@ -560,8 +610,10 @@ CREATE TABLE "testTableWithOpt" (
       _code: 1,
     });
   });
+});
 
-  test("Should remove", async () => {
+describe("Remove", () => {
+  it("Should remove", async () => {
     await expect(
       dbs.collection("testTable").remove({ number: 2000, id: 5 })
     ).resolves.toMatchObject({ rowCount: 1 });
@@ -575,7 +627,8 @@ CREATE TABLE "testTableWithOpt" (
       { id: 1, number: 2000 },
       { id: 3, number: 2000 },
     ]);
-
+  });
+  it("Should fail to remove due to foreign key constraint", async () => {
     await expect(
       dbs.collection("testTable2").insert([{ testTableId: 3 }])
     ).resolves.toMatchObject([{ id: 2 }]);
@@ -601,13 +654,16 @@ CREATE TABLE "testTableWithOpt" (
         .findByIds({ id: [1, 2, 3, 4] })
         .toArray()
     ).resolves.toMatchObject([]);
-
+  });
+  it("Should remove nothing", async () => {
     await expect(
       dbs.collection("testTable").remove({ number: 2000 })
     ).resolves.toMatchObject({ rowCount: 0 });
   });
+});
 
-  test("Should drop", async () => {
+describe("Table", () => {
+  it("Should drop", async () => {
     await expect(dbs.collection("testTable2").drop()).resolves.toMatchObject(
       {}
     );
@@ -628,7 +684,7 @@ describe("Postgresql Query JSON Data types", () => {
     await teardownDbs(dbs);
   });
 
-  test("Should insert", async () => {
+  it("Should insert", async () => {
     await dbs.raw(`
 CREATE TABLE "testJson" (
        id SERIAL PRIMARY KEY,
@@ -642,13 +698,13 @@ CREATE TABLE "testJson" (
         .insert([{ jsonField: { a: 1 }, jsonArray: [1, 2, 3] }])
     ).resolves.toMatchObject([{ id: 1 }]);
   });
-  test("Should update/updateOne", async () => {
+  it("Should update/updateOne", async () => {
     await expect(
       dbs.collection("testJson").updateOne({ id: 1 }, { jsonArray: [1, 2, 4] })
     ).resolves.toMatchObject({ rowCount: 1 });
   });
 
-  test("Should find", async () => {
+  it("Should find", async () => {
     await expect(
       dbs.collection("testJson").find({}).toArray()
     ).resolves.toMatchObject([
@@ -656,7 +712,7 @@ CREATE TABLE "testJson" (
     ]);
   });
 
-  test("Should find ordered", async () => {
+  it("Should find ordered", async () => {
     await dbs
       .collection("testJson")
       .insert([
@@ -700,7 +756,7 @@ describe("Postgresql Query Non-JSON Data types", () => {
     await teardownDbs(dbs);
   });
 
-  test("Should insert", async () => {
+  it("Should insert", async () => {
     await dbs.raw(`
 CREATE TABLE "testNonJson" (
        id SERIAL PRIMARY KEY,
@@ -715,7 +771,7 @@ CREATE TABLE "testNonJson" (
     ).resolves.toMatchObject([{ id: 1 }]);
   });
 
-  test("Should update/updateOne", async () => {
+  it("Should update/updateOne", async () => {
     await expect(
       dbs
         .collection("testNonJson")
@@ -723,7 +779,7 @@ CREATE TABLE "testNonJson" (
     ).resolves.toMatchObject({ rowCount: 1 });
   });
 
-  test("Should find", async () => {
+  it("Should find", async () => {
     await expect(
       dbs.collection("testNonJson").find({}).toArray()
     ).resolves.toMatchObject([
