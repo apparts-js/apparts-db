@@ -28,10 +28,10 @@
   "author": "Philipp Uhl",
   "license": "MIT",
   "dependencies": {
-    "jest-circus": "^27.3.1",
     "pg": "^8.0.0"
   },
   "devDependencies": {
+    "jest-circus": "^27.3.1",
     "@types/pg": "^8.6.1",
     "@apparts/config": "^1.0.6",
     "@tsconfig/node14": "^1.0.1",
