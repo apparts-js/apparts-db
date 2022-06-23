@@ -262,7 +262,7 @@ class Query extends GenericQuery {
             msg: "ERROR, tried to insert, not unique",
             _code: 1,
           });
-        } else if (err.code === "23503") {
+        } else if (err.code === "23503" || err.code === "23514") {
           return Promise.reject({
             msg: "ERROR, tried to insert, constraints not met",
             _code: 3,
