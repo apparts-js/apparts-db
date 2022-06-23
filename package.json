@@ -5,7 +5,7 @@
   "types": "build/index.d.ts",
   "main": "build/index.js",
   "scripts": {
-    "prepublishOnly": "npm run clean && npm ci  && npm run ci && npm run build",
+    "prepublishOnly": "npm run ci && npm run clean && npm run build",
     "testOne": "jest",
     "test": "jest --watch --detectOpenHandles",
     "testCoverage": "jest --coverage",

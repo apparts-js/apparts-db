@@ -32,7 +32,7 @@ jobs:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
-          node-version: 14.16.1
+          node-version: 18.1.0
           cache: "npm"
           registry-url: https://registry.npmjs.org
           scope: "@apparts"
@@ -52,9 +52,6 @@ jobs:
         run: |
           echo Local version ${{steps.get-local-version.outputs.packageVersion}}
           echo Remote version ${{steps.get-npm-published-version.outputs.npmVersion}}
-      - run: npm install
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
       - run: npm publish
         if: ${{ steps.get-local-version.outputs.packageVersion != steps.get-npm-published-version.outputs.npmVersion  }}
         name: Publish to npm
