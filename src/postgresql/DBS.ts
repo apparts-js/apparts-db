@@ -1,11 +1,13 @@
 import { Pool } from "pg";
 import { PGConfig } from "../Config";
 
+import { Queriable } from "./Queriable";
+
 import Query from "./Query";
 import Transaction from "./Transaction";
-import { Id, Params, GenericDBS } from "../generic";
+import { GenericDBS } from "../generic";
 
-class DBS extends GenericDBS {
+class DBS extends Queriable implements GenericDBS {
   _dbs: Pool;
   _config: PGConfig;
   _query?: string;
@@ -16,20 +18,6 @@ class DBS extends GenericDBS {
     this._dbs = dbs;
     this._config = config;
   }
-
-  /* ID FUNCTIONS */
-  newId() {
-    return undefined;
-  }
-
-  fromId(id: Id) {
-    return id;
-  }
-
-  toId(id: Id) {
-    return id;
-  }
-  /* END ID FUNCTIONS */
 
   /* DBS FUNCTIONS */
   collection(col: string) {
@@ -43,7 +31,6 @@ class DBS extends GenericDBS {
     const client = await this._dbs.connect();
     const transaction = new Transaction(client, {
       config: this._config,
-      log: (...ps) => this._log(...ps),
     });
     try {
       const result = await fn(transaction);
@@ -179,24 +166,6 @@ class DBS extends GenericDBS {
     } catch (e) {
       this._log("Error in dbs.raw", query, params, e);
       throw e;
-    }
-  }
-
-  _log(message: string, query: string, params: Params, error: any) {
-    if (this._config.logs === "errors") {
-      if (this._config.logParams) {
-        console.log(
-          message,
-          "\nQUERY:\n",
-          query,
-          "\nPARAMS:\n",
-          params,
-          "\nERROR:\n",
-          error
-        );
-      } else {
-        console.log(message, "\nQUERY:\n", query, "\nERROR:\n", error);
-      }
     }
   }
 

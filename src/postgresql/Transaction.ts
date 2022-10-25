@@ -1,18 +1,19 @@
 import Query from "./Query";
 import { PoolClient } from "pg";
 import { PGConfig } from "../Config";
-import { LogFunc } from "./types";
 import { Result, GenericTransaction, GenericQuery } from "../generic";
 
-class Transaction extends GenericTransaction {
-  _dbs: PoolClient;
-  _config: PGConfig;
-  _log: LogFunc;
+import { Queriable } from "./Queriable";
 
-  constructor(poolClient: PoolClient, dbs: { config: PGConfig; log: LogFunc }) {
+class Transaction extends Queriable implements GenericTransaction {
+  _dbs: PoolClient;
+  async transaction<T>(): Promise<T> {
+    throw new Error("Can not start new transaction in transaction");
+  }
+
+  constructor(poolClient: PoolClient, dbs: { config: PGConfig }) {
     super();
     this._dbs = poolClient;
-    this._log = (...ps) => dbs.log(...ps);
     this._config = dbs.config;
     this._dbs.query("BEGIN;");
   }

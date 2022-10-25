@@ -1,10 +1,10 @@
-import { Result } from "./types";
-import { GenericQuery } from "./GenericQuery";
+import { GenericQueriable } from "./GenericQueriable";
 
-export abstract class GenericTransaction {
-  abstract raw<T>(query: string, params?: any[]): Promise<Result<T>>;
-  abstract collection(col: string): GenericQuery;
+export abstract class GenericTransaction extends GenericQueriable {
   abstract commit(): Promise<void>;
   abstract rollback(): Promise<void>;
   abstract end(): Promise<void>;
+  async transaction<T>(): Promise<T> {
+    throw new Error("Can not start new transaction in transaction");
+  }
 }
