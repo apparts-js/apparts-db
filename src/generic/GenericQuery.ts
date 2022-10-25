@@ -20,7 +20,10 @@ export abstract class GenericQuery {
     order?: Order
   ): this;
   abstract toArray<T>(): Promise<T[]>;
-  abstract insert(content: any[], returning?: string[]): Promise<Id[]>;
+  abstract insert<Rs extends string[]>(
+    content: any[],
+    returning?: Rs
+  ): Promise<Record<string, Id>[]>;
   abstract updateOne<T>(
     filter: Params,
     c: { [p: string]: any }
