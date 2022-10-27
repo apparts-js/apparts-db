@@ -148,7 +148,8 @@ beforeAll(async () => {
   await dbs.raw(`
 CREATE TABLE "testTable" (
        id SERIAL PRIMARY KEY,
-       number INT NOT NULL
+       number INT NOT NULL,
+       text TEXT
 )`);
   await dbs.raw(`
 CREATE TABLE "testTable2" (
@@ -186,7 +187,10 @@ describe("Insert", () => {
 
   it("Should insert multiple things", async () => {
     await expect(
-      dbs.collection("testTable").insert([{ number: 101 }, { number: 102 }])
+      dbs.collection("testTable").insert([
+        { number: 101, text: "ballaBalla" },
+        { number: 102, text: "foo bar" },
+      ])
     ).resolves.toMatchObject([{ id: 2 }, { id: 3 }]);
   });
   it("Should fail to insert non-unique content", async () => {
@@ -320,6 +324,26 @@ describe("Filters", () => {
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
+    ]);
+  });
+  it("Should findByIds with like operator", async () => {
+    await expect(
+      dbs
+        .collection("testTable")
+        .find({ text: { op: "like", val: "%Ba%" } })
+        .toArray()
+    ).resolves.toMatchObject([{ id: 2, text: "ballaBalla" }]);
+  });
+
+  it("Should findByIds with ilike operator", async () => {
+    await expect(
+      dbs
+        .collection("testTable")
+        .find({ text: { op: "ilike", val: "%Ba%" } })
+        .toArray()
+    ).resolves.toMatchObject([
+      { id: 2, text: "ballaBalla" },
+      { id: 3, text: "foo bar" },
     ]);
   });
 

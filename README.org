@@ -167,6 +167,7 @@ an object that has ~op~ and ~val~ keys. ~op~ can be one of
 - ~gt~ :: Greater than. ~val~ must be a number, against the value
   is combined.
 - ~like~ :: Compares strings with the SQL like operator.
+- ~ilike~ :: Compares strings with the SQL like operator, case insensitive.
 - ~and~ :: Combines multiple filters and-wise. ~val~ must be an array of
   objects, that have ~val~ and ~op~ keys of the form described here.
 - exists :: Checks if an optional field is ~null~ or not. If ~val~ is

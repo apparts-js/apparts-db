@@ -179,6 +179,9 @@ class Query extends GenericQuery {
       case "like":
         newVals.push(val);
         return `${key} LIKE $${this._counter++}`;
+      case "ilike":
+        newVals.push(val);
+        return `${key} ILIKE $${this._counter++}`;
       case "and":
         return (val as { op: string; val: any }[])
           .map((v) => this._decideOperator(key, v.op, v.val, newVals, true))
