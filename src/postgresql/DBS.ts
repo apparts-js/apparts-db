@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { PGConfig } from "../Config";
+import { PGConfig } from "./Config";
 
 import { Queriable } from "./Queriable";
 

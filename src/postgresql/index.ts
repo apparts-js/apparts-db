@@ -1,6 +1,6 @@
 "use strict";
 
-import { PGConfig } from "../Config";
+import { PGConfig } from "./Config";
 import { Pool, types as pgTypes } from "pg";
 import DBS from "./DBS";
 

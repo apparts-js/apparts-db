@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from "pg";
-import { PGConfig } from "../Config";
+import { PGConfig } from "./Config";
 
 import { LogFunc } from "./types";
 import { Params, Order, Result, GenericQuery } from "../generic";

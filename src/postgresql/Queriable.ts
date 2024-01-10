@@ -1,6 +1,6 @@
 import { GenericQueriable } from "../generic";
 import { Id, Params } from "../generic";
-import { PGConfig } from "../Config";
+import { PGConfig } from "./Config";
 
 export abstract class Queriable extends GenericQueriable {
   _config: PGConfig;

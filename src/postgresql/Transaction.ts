@@ -1,6 +1,6 @@
 import Query from "./Query";
 import { PoolClient } from "pg";
-import { PGConfig } from "../Config";
+import { PGConfig } from "./Config";
 import { Result, GenericTransaction, GenericQuery } from "../generic";
 
 import { Queriable } from "./Queriable";
