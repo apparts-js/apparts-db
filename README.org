@@ -87,7 +87,7 @@ connect(DB_CONFIG, (e, dbs) => {
 
 
   // retrieve values
-  const filter = { id: { op: "in", vals: [2, 3] }};
+  const filter = { id: { op: "in", val: [2, 3] }};
   // see below for everything you can stick into filter and into order
   const limit = 10, offset = 0, order = [{ key: "id", dir: "ASC" }];
   await dbs.collection("testTable").find(filter, limit, offset, order);
