@@ -1,7 +1,7 @@
 "use strict";
 
 import { PGConfig } from "./Config";
-import { Pool, types as pgTypes } from "pg";
+import { Pool, types as pgTypes, defaults as pgDefaults } from "pg";
 import DBS from "./DBS";
 
 export const createPool = async (c: PGConfig) => {
@@ -27,9 +27,7 @@ export const createPool = async (c: PGConfig) => {
 
   if (c.bigIntAsNumber) {
     // Return Bigint and stuff as number, not as string
-    pgTypes.setTypeParser(20, (val) => {
-      return parseInt(val);
-    });
+    pgDefaults.parseInt8 = true;
   }
 
   return pool;
