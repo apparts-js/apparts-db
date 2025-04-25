@@ -10,7 +10,7 @@ class Query extends GenericQuery {
   _counter: number;
   _config: PGConfig;
   _log: LogFunc;
-  _query?: string;
+  _fromQuery?: string;
   _params?: any[];
 
   constructor(
@@ -27,7 +27,7 @@ class Query extends GenericQuery {
   }
 
   find(params: Params, limit?: number, offset?: number, order?: Order): this {
-    let q = `SELECT * FROM "${this._table}" `;
+    let q = `FROM "${this._table}" `;
     const newVals = [];
     q += this._buildWhere(params, newVals);
     if (order) {
@@ -57,7 +57,7 @@ class Query extends GenericQuery {
         newVals.push(offset);
       }
     }
-    this._query = q;
+    this._fromQuery = q;
     this._params = newVals;
     return this;
   }
@@ -208,16 +208,31 @@ class Query extends GenericQuery {
     return this.find(params, limit, offset, order);
   }
 
-  toArray<T>(): Promise<T[]> {
+  async toArray<T>(): Promise<T[]> {
+    const query = "SELECT * " + this._fromQuery;
     return this._dbs
-      .query<T>(this._query, this._params)
+      .query<T>(query, this._params)
       .then((res) => {
         return Promise.resolve(res.rows);
       })
       .catch((e) => {
-        this._log("Error in toArray:", this._query, this._params, e);
+        this._log("Error in toArray:", query, this._params, e);
         return Promise.reject(e);
       });
+  }
+
+  async count(): Promise<number> {
+    const query = "SELECT COUNT(*) " + this._fromQuery;
+    try {
+      const result = await this._dbs.query<{ count: number }>(
+        query,
+        this._params
+      );
+      return result.rows[0].count;
+    } catch (e) {
+      this._log("Error in count:", query, this._params, e);
+      throw e;
+    }
   }
 
   _transformArray(array: any[]) {
@@ -228,7 +243,7 @@ class Query extends GenericQuery {
     }
   }
 
-  insert(content: any[], returning = ["id"]) {
+  async insert(content: any[], returning = ["id"]) {
     if (content.length === 0) {
       return Promise.resolve([]);
     }

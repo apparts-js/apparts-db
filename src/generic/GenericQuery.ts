@@ -20,6 +20,7 @@ export abstract class GenericQuery {
     order?: Order
   ): this;
   abstract toArray<T>(): Promise<T[]>;
+  abstract count(): Promise<number>;
   abstract insert<Rs extends string[]>(
     content: any[],
     returning?: Rs

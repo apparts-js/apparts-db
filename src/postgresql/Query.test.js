@@ -140,6 +140,23 @@ describe("Log on error behavior", () => {
       ],
     ]);
   });
+  it("Should log on count", async () => {
+    const t = dbs.collection("testTable");
+    t._dbs = { query };
+
+    await expect(t.findByIds({ id: [2] }).count()).rejects.toBe(e);
+    expect(logMock.mock.calls).toEqual([
+      [
+        "Error in count:",
+        "\nQUERY:\n",
+        `SELECT COUNT(*) FROM "testTable" WHERE "id" IN ($1)`,
+        "\nPARAMS:\n",
+        [2],
+        "\nERROR:\n",
+        e,
+      ],
+    ]);
+  });
 });
 
 let dbs;
@@ -605,6 +622,12 @@ describe("Find ordered", () => {
       { id: 2, number: 101 },
       { id: 3, number: 102 },
     ]);
+  });
+});
+
+describe("Count", () => {
+  it("Should return correct row count", async () => {
+    await expect(dbs.collection("testTable").find({}).count()).resolves.toBe(4);
   });
 });
 
