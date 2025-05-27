@@ -1,7 +1,7 @@
 "use strict";
 
+import { defaults as pgDefaults, Pool } from "pg";
 import { PGConfig } from "./Config";
-import { Pool, types as pgTypes, defaults as pgDefaults } from "pg";
 import DBS from "./DBS";
 
 export const createPool = async (c: PGConfig) => {
@@ -14,6 +14,7 @@ export const createPool = async (c: PGConfig) => {
     max: c.maxPoolSize || 10,
     connectionTimeoutMillis: c.connectionTimeoutMillis || 0,
     idleTimeoutMillis: c.idleTimeoutMillis || 10000,
+    ...c.poolConfig,
   });
 
   pool.on("error", (err) => {

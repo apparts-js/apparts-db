@@ -1,3 +1,5 @@
+import { PoolConfig } from "pg";
+
 export interface PGConfig {
   host: string;
   port: number;
@@ -12,4 +14,5 @@ export interface PGConfig {
   logs?: "errors";
   logParams?: boolean;
   arrayAsJSON?: boolean;
+  poolConfig?: PoolConfig;
 }
