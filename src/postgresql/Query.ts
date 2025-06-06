@@ -86,7 +86,7 @@ class Query extends GenericQuery {
     );
   }
 
-  _buildJsonPath(key, path, newVals) {
+  _buildJsonPath(key, path, newVals, keepAsJson = false) {
     if (path.length < 1) {
       throw new Error(
         "ERROR, JSON path requires at least one path element. You submitted []."
@@ -104,7 +104,8 @@ class Query extends GenericQuery {
             .slice(0, -1)
             .map(() => `$${this._counter++}`)
             .join("->")) +
-      `->>$${this._counter++} `
+      (keepAsJson ? "->" : "->>") +
+      `$${this._counter++} `
     );
   }
 
@@ -163,6 +164,11 @@ class Query extends GenericQuery {
           newVals.push(val.value);
           return `${path} = $${this._counter++}`;
         }
+      }
+      case "oftype": {
+        const path = this._buildJsonPath(key, val.path, newVals, true);
+        newVals.push(val.value);
+        return `jsonb_typeof(${path}) = $${this._counter++}`;
       }
       case "lte":
         newVals.push(val);

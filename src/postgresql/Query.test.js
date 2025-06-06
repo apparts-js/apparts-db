@@ -177,7 +177,7 @@ CREATE TABLE "testTable2" (
   await dbs.raw(`
 CREATE TABLE "testTable3" (
        id SERIAL PRIMARY KEY,
-       "object1" json NOT NULL
+       "object1" jsonb NOT NULL
 )`);
   await dbs.raw(`
 CREATE TABLE "testTableWithOpt" (
@@ -463,6 +463,36 @@ describe("Filters", () => {
     ).resolves.toMatchObject([{ object1: { aNumber: 333 } }]);
   });
 
+  it("Should check type with oftype operator, one level deep", async () => {
+    await expect(
+      dbs
+        .collection("testTable3")
+        .find({
+          object1: {
+            op: "oftype",
+            val: {
+              path: ["tokens"],
+              value: "string",
+            },
+          },
+        })
+        .toArray()
+    ).resolves.toStrictEqual([{ id: 2, object1: { tokens: "abc" } }]);
+    await expect(
+      dbs
+        .collection("testTable3")
+        .find({
+          object1: {
+            op: "oftype",
+            val: {
+              path: ["tokens"],
+              value: "number",
+            },
+          },
+        })
+        .toArray()
+    ).resolves.toStrictEqual([]);
+  });
   it("Should find null value", async () => {
     await dbs.collection("testTableWithOpt").insert([
       {

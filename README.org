@@ -173,7 +173,20 @@ an object that has ~op~ and ~val~ keys. ~op~ can be one of
 - exists :: Checks if an optional field is ~null~ or not. If ~val~ is
   ~true~, than the field must be not ~null~. If ~val~ is ~false~, than the
   field must be ~null~;
-  
+- oftype :: Checks the type of a JSON property. Requires a JSONB
+  column in Postgresql to work.
+   - ~path~ (an array of keys for the nested json) 
+   - ~value~, one of "object", "array", "string", "number", "boolean",
+     and "null".
+  #+BEGIN_SRC json
+  {
+    "op": "of",
+    "val": {
+        "path": ["<key 1>"],
+        "value": "object" // or any other of the valid types
+    }
+  }
+  #+END_SRC  
   
 **** Filter Grammar
 
