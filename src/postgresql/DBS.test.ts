@@ -1,4 +1,5 @@
-const { setupDbs, teardownDbs } = require("../tests/pg")({
+import setupTest from "../tests/pg";
+const { setupDbs, teardownDbs } = setupTest({
   testName: "dbstest",
 });
 
@@ -15,7 +16,9 @@ describe("Prints errors with params", () => {
   });
 
   test("Should log raw query failure", async () => {
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {});
+    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+      // nothign
+    });
     let error;
     try {
       await dbs.raw(`SELECT FROM "testTable"`, [1, "test"]);
@@ -30,7 +33,7 @@ describe("Prints errors with params", () => {
         "\nQUERY:\n",
         `SELECT FROM "testTable"`,
         "\nPARAMS:\n",
-        [1, "test"],
+        { params: [1, "test"] },
         "\nERROR:\n",
         error,
       ],
@@ -49,7 +52,9 @@ describe("Prints errors without params", () => {
   });
 
   test("Should log raw query failure", async () => {
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {});
+    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+      // nothign
+    });
     let error;
     try {
       await dbs.raw(`SELECT FROM "testTable"`, [1, "test"]);

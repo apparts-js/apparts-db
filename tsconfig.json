@@ -13,6 +13,6 @@
     "strictNullChecks": false
   },
   "extends": "@tsconfig/node14/tsconfig.json",
-  "include": ["src/index.ts"],
+  "include": ["src/index.ts", "src/**/*.ts"],
   "exclude": ["**/node_modules", "**/.*/"]
 }

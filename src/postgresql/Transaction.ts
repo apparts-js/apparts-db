@@ -22,7 +22,7 @@ class Transaction extends Queriable implements GenericTransaction {
     try {
       return await this._dbs.query<T>(query, params);
     } catch (e) {
-      this._log("Error in dbs.raw", query, params, e);
+      this._log("Error in dbs.raw", query, { params }, e);
       throw e;
     }
   }

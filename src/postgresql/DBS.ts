@@ -10,8 +10,6 @@ import { GenericDBS } from "../generic";
 class DBS extends Queriable implements GenericDBS {
   _dbs: Pool;
   _config: PGConfig;
-  _query?: string;
-  _params?: any[];
 
   constructor(dbs: Pool, config: PGConfig) {
     super();
@@ -118,7 +116,7 @@ class DBS extends Queriable implements GenericDBS {
     try {
       return this._dbs.query(q);
     } catch (e) {
-      this._log("Error in updateOne:", this._query, this._params, e);
+      this._log("Error in updateOne:", "", {}, e);
       throw e;
     }
   }
@@ -164,7 +162,7 @@ class DBS extends Queriable implements GenericDBS {
     try {
       return await this._dbs.query(query, params);
     } catch (e) {
-      this._log("Error in dbs.raw", query, params, e);
+      this._log("Error in dbs.raw", query, { params }, e);
       throw e;
     }
   }

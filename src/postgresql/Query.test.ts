@@ -1,17 +1,21 @@
-const { setupDbs, teardownDbs } = require("../tests/pg")({
+import setupTest from "../tests/pg";
+
+const { setupDbs, teardownDbs } = setupTest({
   testName: "querytest",
 });
-const DBS = require("./DBS").default;
+import DBS from "./DBS";
 
 describe("Log on error behavior", () => {
   let logMock, e, query, dbs;
   beforeEach(() => {
-    logMock = jest.spyOn(console, "log").mockImplementation(() => {});
+    logMock = jest.spyOn(console, "log").mockImplementation(() => {
+      // nothign
+    });
     e = new Error("test");
     query = jest.fn().mockImplementation(async () => {
       throw e;
     });
-    dbs = new DBS({}, { logs: "errors", logParams: true });
+    dbs = new DBS({} as any, { logs: "errors", logParams: true } as any);
   });
   afterEach(() => {
     logMock.mockRestore();
@@ -766,7 +770,9 @@ describe("Table", () => {
     await expect(dbs.collection("testTable2").drop()).resolves.toMatchObject(
       {}
     );
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {});
+    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+      // nothign
+    });
     await expect(
       dbs.collection("testTable2").findByIds({}).toArray()
     ).rejects.toMatchObject({ code: "42P01" });

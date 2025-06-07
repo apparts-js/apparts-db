@@ -1,5 +1,6 @@
-const { connect } = require("../");
-const { dbConfig } = require("../tests/pg")({
+import { connect } from "../";
+import setupTest from "../tests/pg";
+const { dbConfig } = setupTest({
   testName: "postgresqltest",
 });
 

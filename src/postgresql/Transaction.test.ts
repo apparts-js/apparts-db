@@ -1,4 +1,5 @@
-const { setupDbs, teardownDbs } = require("../tests/pg")({
+import setupTest from "../tests/pg";
+const { setupDbs, teardownDbs } = setupTest({
   testName: "transactiontest",
 });
 

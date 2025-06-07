@@ -72,14 +72,19 @@ class Query extends GenericQuery {
       "WHERE " +
       keys
         .map((key, i) => {
-          if (vals[i] === null) {
+          const val = vals[i];
+          if (val === null) {
             return `"${key}" IS NULL `;
-          } else if (typeof vals[i] !== "object") {
-            newVals.push(vals[i]);
+          } else if (typeof val !== "object") {
+            newVals.push(val);
             return `"${key}" = $${this._counter++}`;
+          } else if (typeof val === "object" && "op" in val) {
+            const op = val.op;
+            return this._decideOperator(key, op, val.val, newVals);
           } else {
-            const op = vals[i].op;
-            return this._decideOperator(key, op, vals[i].val, newVals);
+            throw new Error(
+              `ERROR, unknown value type for key "${key}": ${val}`
+            );
           }
         })
         .join(" AND ")
