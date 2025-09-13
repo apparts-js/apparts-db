@@ -301,6 +301,47 @@ describe("Find / findById", () => {
 });
 
 describe("Filters", () => {
+  it("Should findById with in operator", async () => {
+    await expect(
+      dbs
+        .collection("testTable")
+        .findById({ number: { op: "in", val: [] } })
+        .toArray()
+    ).resolves.toMatchObject([]);
+    await expect(
+      dbs
+        .collection("testTable")
+        .findById({ number: { op: "in", val: [101, 102] } })
+        .toArray()
+    ).resolves.toMatchObject([
+      { id: 2, number: 101 },
+      { id: 3, number: 102 },
+    ]);
+  });
+
+  it("Should findById with notin operator", async () => {
+    await expect(
+      dbs
+        .collection("testTable")
+        .findById({ number: { op: "notin", val: [102] } })
+        .toArray()
+    ).resolves.toMatchObject([
+      { id: 1, number: 100 },
+      { id: 2, number: 101 },
+    ]);
+
+    await expect(
+      dbs
+        .collection("testTable")
+        .findById({ number: { op: "notin", val: [] } })
+        .toArray()
+    ).resolves.toMatchObject([
+      { id: 1, number: 100 },
+      { id: 2, number: 101 },
+      { id: 3, number: 102 },
+    ]);
+  });
+
   it("Should findById with gt operator", async () => {
     await expect(
       dbs

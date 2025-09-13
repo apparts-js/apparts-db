@@ -142,6 +142,8 @@ the filter should be applied against. The value is either a value or
 an object that has ~op~ and ~val~ keys. ~op~ can be one of
 - ~in~ :: ~val~ then must be an array of possible values. The filter
   accepts values that appear in the ~val~ array.
+- ~notin~ :: ~val~ then must be an array of values. The filter
+  accepts values that do not appear in the ~val~ array.
 - ~of~ :: ~val~ is an object with the keys
   - ~path~ (an array of keys for the nested json) 
   - ~value~, either a value to directly compare to, or another filter

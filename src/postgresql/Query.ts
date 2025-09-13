@@ -145,6 +145,16 @@ class Query extends GenericQuery {
         return (
           `${key} IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
         );
+      case "notin":
+        if (val.length === 0) {
+          return " TRUE ";
+        }
+        val.forEach((v: any) => newVals.push(v));
+        return (
+          `${key} NOT IN (` +
+          val.map(() => `$${this._counter++}`).join(",") +
+          ")"
+        );
       case "of": {
         const path = this._buildJsonPath(key, val.path, newVals);
         if (typeof val.value === "object") {
