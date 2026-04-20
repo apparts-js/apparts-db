@@ -1,3 +1,6 @@
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
 import { GenericDBS, NotSupportedByDBEngine, Result } from "../generic";
 import { DynamoConfig } from "./Config";
 import Query from "./Query";
@@ -5,11 +8,17 @@ import Transaction from "./Transaction";
 import { Queriable } from "./Queriable";
 
 class DBS extends Queriable implements GenericDBS {
-  _client: unknown;
+  _client: DynamoDBDocumentClient;
+  _raw: DynamoDBClient;
 
-  constructor(client: unknown, config: DynamoConfig) {
+  constructor(
+    client: DynamoDBDocumentClient,
+    rawClient: DynamoDBClient,
+    config: DynamoConfig
+  ) {
     super();
     this._client = client;
+    this._raw = rawClient;
     this._config = config;
   }
 
@@ -31,7 +40,8 @@ class DBS extends Queriable implements GenericDBS {
   }
 
   async shutdown(): Promise<void> {
-    throw new Error("Not yet implemented: DBS.shutdown");
+    this._client.destroy();
+    this._raw.destroy();
   }
 }
 

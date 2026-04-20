@@ -1,22 +1,27 @@
 import { NotSupportedByDBEngine } from "../generic";
-import DBS from "./DBS";
+import { connectDynamo } from "./index";
 import Query from "./Query";
 
 const shouldRun = process.env.DB_ENGINE === "dynamodb";
 const runOrSkip = shouldRun ? describe : describe.skip;
 
+const buildConfig = () => ({
+  region: "local",
+  endpoint: `http://${process.env.DYNAMODB_HOST || "localhost"}:${
+    process.env.DYNAMODB_PORT || "8000"
+  }`,
+  accessKeyId: "local",
+  secretAccessKey: "local",
+});
+
 runOrSkip("DynamoDB DBS unsupported operations", () => {
-  let dbs: DBS;
-  beforeAll(() => {
-    dbs = new DBS(
-      {},
-      {
-        region: "local",
-        endpoint: "http://localhost:8000",
-        accessKeyId: "local",
-        secretAccessKey: "local",
-      }
-    );
+  let dbs: Awaited<ReturnType<typeof connectDynamo>>;
+
+  beforeAll(async () => {
+    dbs = await connectDynamo(buildConfig());
+  });
+  afterAll(async () => {
+    await dbs.shutdown();
   });
 
   test("raw SQL queries are not supported", async () => {

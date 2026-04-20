@@ -1,9 +1,11 @@
 import { PGConfig } from "./postgresql/Config";
+import { DynamoConfig } from "./dynamodb/Config";
 
 interface Config {
   use: string;
-  postgresql: PGConfig;
+  postgresql?: PGConfig;
+  dynamodb?: DynamoConfig;
 }
 
-export { PGConfig };
+export { PGConfig, DynamoConfig };
 export default Config;

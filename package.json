@@ -28,6 +28,8 @@
   "author": "Philipp Uhl",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1032.0",
+    "@aws-sdk/lib-dynamodb": "^3.1032.0",
     "pg": "^8.15.5"
   },
   "devDependencies": {
