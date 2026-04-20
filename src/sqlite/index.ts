@@ -1,14 +1,25 @@
 "use strict";
 
+import Database from "better-sqlite3";
+
 import { GenericDBS, Result, Id } from "../generic";
 import { GenericQuery } from "../generic/GenericQuery";
 import { GenericTransaction } from "../generic/GenericTransaction";
 
 export type SqliteConfig = {
   filename: string;
+  readonly?: boolean;
+  fileMustExist?: boolean;
 };
 
 class SqliteDBS extends GenericDBS {
+  _db: Database.Database;
+
+  constructor(db: Database.Database) {
+    super();
+    this._db = db;
+  }
+
   newId(): Id {
     throw new Error("SqliteDBS.newId not implemented");
   }
@@ -26,16 +37,28 @@ class SqliteDBS extends GenericDBS {
   ): Promise<T> {
     throw new Error("SqliteDBS.transaction not implemented");
   }
-  async raw<T>(_query: string, _params?: unknown[]): Promise<Result<T>> {
-    throw new Error("SqliteDBS.raw not implemented");
+
+  async raw<T>(query: string, params: unknown[] = []): Promise<Result<T>> {
+    const stmt = this._db.prepare(query);
+    if (stmt.reader) {
+      const rows = stmt.all(...(params as never[])) as T[];
+      return { rows, rowCount: rows.length };
+    }
+    const info = stmt.run(...(params as never[]));
+    return { rows: [], rowCount: info.changes };
   }
+
   async shutdown(): Promise<void> {
-    throw new Error("SqliteDBS.shutdown not implemented");
+    this._db.close();
   }
 }
 
-export const connectSqlite = async (_c: SqliteConfig): Promise<SqliteDBS> => {
-  throw new Error("connectSqlite not implemented");
+export const connectSqlite = async (c: SqliteConfig): Promise<SqliteDBS> => {
+  const opts: Database.Options = {};
+  if (c.readonly !== undefined) opts.readonly = c.readonly;
+  if (c.fileMustExist !== undefined) opts.fileMustExist = c.fileMustExist;
+  const db = new Database(c.filename, opts);
+  return new SqliteDBS(db);
 };
 
 export { SqliteDBS };
