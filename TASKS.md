@@ -4,5 +4,9 @@
   - [x] Write failing DynamoDB Local connectivity stub test, commit
   - [x] Add GitHub Actions workflow with DynamoDB Local service and implement connectivity test to pass, commit & push
 - [ ] Implement class for dynamo db (use branch feature/dynamo). Only implement what is possible with dynamo. Other stuff should throw a NotSupportedByDBEngine error
+  - [ ] Add NotSupportedByDBEngine error and stub DynamoDB classes (DBS, Queriable, Query, Transaction, Config, index) with all abstract methods stubbed to throw; add failing tests that exercise the stubs, commit & push
+  - [ ] Add @aws-sdk/client-dynamodb + lib-dynamodb deps; implement DBS connection, shutdown, id functions; wire connect() in src/index.ts and Config.ts so DynamoDB can be selected; commit & push
+  - [ ] Implement Query operations (insert, findById, findByIds, remove, toArray, count, update, updateOne, find with filter expressions); unsupported operators (like, ilike, oftype, of with JSON path) throw NotSupportedByDBEngine; commit & push
+  - [ ] Implement Transaction using TransactWriteItems, with commit/rollback/end semantics and NotSupportedByDBEngine for incompatible ops; commit & push
 - [ ] Setup github workflow for testing sqlite (use branch feature/sqlite)
 - [ ] Implement class for sqlite db (use branch feature/sqlite). Only implement what is possible with sqlite. Other stuff should throw a NotSupportedByDBEngine error
