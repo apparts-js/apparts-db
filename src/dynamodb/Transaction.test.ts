@@ -1,6 +1,8 @@
 import { NotSupportedByDBEngine } from "../generic";
 import { connectDynamo } from "./index";
 import DBS from "./DBS";
+import Transaction from "./Transaction";
+import { ensureTable, dropTable } from "../tests/dynamodb";
 
 const shouldRun = process.env.DB_ENGINE === "dynamodb";
 const runOrSkip = shouldRun ? describe : describe.skip;
@@ -20,11 +22,13 @@ runOrSkip("DynamoDB Transaction", () => {
   let dbs: DBS;
 
   beforeAll(async () => {
+    await ensureTable(TEST_TABLE);
     dbs = await connectDynamo(buildConfig());
-  });
+  }, 60000);
   afterAll(async () => {
     await dbs.shutdown();
-  });
+    await dropTable(TEST_TABLE);
+  }, 60000);
 
   test("committed transaction persists writes", async () => {
     await dbs.transaction(async (t) => {
@@ -54,7 +58,7 @@ runOrSkip("DynamoDB Transaction", () => {
   test("nested transactions are not supported", async () => {
     await expect(
       dbs.transaction(async (t) => {
-        await (t as unknown as DBS).transaction(async () => undefined);
+        await (t as Transaction).transaction();
       })
     ).rejects.toThrow("Can not start new transaction in transaction");
   });

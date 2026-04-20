@@ -29,8 +29,18 @@ class DBS extends Queriable implements GenericDBS {
     });
   }
 
-  async transaction<T>(_fn: (t: Transaction) => Promise<T>): Promise<T> {
-    throw new Error("Not yet implemented: DBS.transaction");
+  async transaction<T>(fn: (t: Transaction) => Promise<T>): Promise<T> {
+    const tx = new Transaction(this._client, { config: this._config });
+    try {
+      const result = await fn(tx);
+      await tx.commit();
+      return result;
+    } catch (e) {
+      await tx.rollback();
+      throw e;
+    } finally {
+      await tx.end();
+    }
   }
 
   async raw<T>(_query: string, _params?: unknown[]): Promise<Result<T>> {

@@ -1,4 +1,7 @@
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  TransactWriteCommand,
+} from "@aws-sdk/lib-dynamodb";
 
 import {
   GenericQuery,
@@ -7,16 +10,20 @@ import {
   Result,
 } from "../generic";
 import { DynamoConfig } from "./Config";
-import Query from "./Query";
 import { Queriable } from "./Queriable";
+import TransactionQuery, { TransactItem } from "./TransactionQuery";
 
 class Transaction extends Queriable implements GenericTransaction {
   _client: DynamoDBDocumentClient;
+  _writes: TransactItem[];
+  _finished: boolean;
 
   constructor(client: DynamoDBDocumentClient, dbs: { config: DynamoConfig }) {
     super();
     this._client = client;
     this._config = dbs.config;
+    this._writes = [];
+    this._finished = false;
   }
 
   async transaction<T>(): Promise<T> {
@@ -30,22 +37,43 @@ class Transaction extends Queriable implements GenericTransaction {
   }
 
   collection(table: string): GenericQuery {
-    return new Query(this._client, table, {
-      config: this._config,
-      log: (...ps) => this._log(...ps),
-    });
+    return new TransactionQuery(
+      this._client,
+      table,
+      {
+        config: this._config,
+        log: (...ps) => this._log(...ps),
+      },
+      this._writes
+    );
   }
 
   async commit(): Promise<void> {
-    throw new Error("Not yet implemented: Transaction.commit");
+    if (this._finished) return;
+    this._finished = true;
+    if (this._writes.length === 0) return;
+    if (this._writes.length > 100) {
+      throw new NotSupportedByDBEngine(
+        `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`
+      );
+    }
+    try {
+      await this._client.send(
+        new TransactWriteCommand({ TransactItems: this._writes })
+      );
+    } catch (e) {
+      this._log("Error in commit:", "TransactWriteItems", {}, e);
+      throw e;
+    }
   }
 
   async rollback(): Promise<void> {
-    throw new Error("Not yet implemented: Transaction.rollback");
+    this._finished = true;
+    this._writes.length = 0;
   }
 
   async end(): Promise<void> {
-    throw new Error("Not yet implemented: Transaction.end");
+    this._writes.length = 0;
   }
 }
 
