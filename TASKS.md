@@ -1,6 +1,6 @@
 
 
-- [ ] Setup github workflow for testing dynamo db (use branch feature/dynamo)
+- [x] Setup github workflow for testing dynamo db (use branch feature/dynamo)
   - [x] Write failing DynamoDB Local connectivity stub test, commit
   - [x] Add GitHub Actions workflow with DynamoDB Local service and implement connectivity test to pass, commit & push
 - [ ] Implement class for dynamo db (use branch feature/dynamo). Only implement what is possible with dynamo. Other stuff should throw a NotSupportedByDBEngine error
