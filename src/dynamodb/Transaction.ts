@@ -1,3 +1,5 @@
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
 import {
   GenericQuery,
   GenericTransaction,
@@ -9,14 +11,12 @@ import Query from "./Query";
 import { Queriable } from "./Queriable";
 
 class Transaction extends Queriable implements GenericTransaction {
-  _client: unknown;
-  _writes: unknown[];
+  _client: DynamoDBDocumentClient;
 
-  constructor(client: unknown, dbs: { config: DynamoConfig }) {
+  constructor(client: DynamoDBDocumentClient, dbs: { config: DynamoConfig }) {
     super();
     this._client = client;
     this._config = dbs.config;
-    this._writes = [];
   }
 
   async transaction<T>(): Promise<T> {

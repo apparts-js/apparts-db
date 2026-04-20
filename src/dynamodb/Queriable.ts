@@ -1,4 +1,4 @@
-import { GenericQueriable, Id, Params } from "../generic";
+import { GenericQueriable, Id } from "../generic";
 import { DynamoConfig } from "./Config";
 
 export abstract class Queriable extends GenericQueriable {
@@ -19,7 +19,7 @@ export abstract class Queriable extends GenericQueriable {
   protected _log(
     message: string,
     operation: string,
-    params: Params | { params: unknown },
+    params: unknown,
     error: unknown
   ) {
     if (this._config.logs === "errors") {

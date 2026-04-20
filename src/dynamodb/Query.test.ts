@@ -1,6 +1,7 @@
 import { NotSupportedByDBEngine } from "../generic";
 import { connectDynamo } from "./index";
 import DBS from "./DBS";
+import { ensureTable, dropTable } from "../tests/dynamodb";
 
 const shouldRun = process.env.DB_ENGINE === "dynamodb";
 const runOrSkip = shouldRun ? describe : describe.skip;
@@ -20,11 +21,13 @@ runOrSkip("DynamoDB Query CRUD", () => {
   let dbs: DBS;
 
   beforeAll(async () => {
+    await ensureTable(TEST_TABLE);
     dbs = await connectDynamo(buildConfig());
-  });
+  }, 60000);
   afterAll(async () => {
     await dbs.shutdown();
-  });
+    await dropTable(TEST_TABLE);
+  }, 60000);
 
   test("insert returns the primary key of inserted items", async () => {
     const ids = await dbs.collection(TEST_TABLE).insert([
@@ -76,18 +79,21 @@ runOrSkip("DynamoDB Query CRUD", () => {
 
 runOrSkip("DynamoDB Query unsupported operators", () => {
   let dbs: DBS;
+  const UNSUP_TABLE = "dynamo_test_unsupported";
 
   beforeAll(async () => {
+    await ensureTable(UNSUP_TABLE);
     dbs = await connectDynamo(buildConfig());
-  });
+  }, 60000);
   afterAll(async () => {
     await dbs.shutdown();
-  });
+    await dropTable(UNSUP_TABLE);
+  }, 60000);
 
   test("like operator throws NotSupportedByDBEngine", async () => {
     await expect(
       dbs
-        .collection(TEST_TABLE)
+        .collection(UNSUP_TABLE)
         .find({ id: { op: "like", val: "%" } })
         .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
@@ -96,7 +102,7 @@ runOrSkip("DynamoDB Query unsupported operators", () => {
   test("ilike operator throws NotSupportedByDBEngine", async () => {
     await expect(
       dbs
-        .collection(TEST_TABLE)
+        .collection(UNSUP_TABLE)
         .find({ id: { op: "ilike", val: "%" } })
         .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
@@ -105,8 +111,10 @@ runOrSkip("DynamoDB Query unsupported operators", () => {
   test("oftype operator throws NotSupportedByDBEngine", async () => {
     await expect(
       dbs
-        .collection(TEST_TABLE)
-        .find({ id: { op: "oftype", val: { path: ["x"], value: "string" } } })
+        .collection(UNSUP_TABLE)
+        .find({
+          id: { op: "oftype", val: { path: ["x"], value: "string" } },
+        })
         .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
