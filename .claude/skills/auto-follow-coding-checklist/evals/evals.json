@@ -1,0 +1,104 @@
+{
+  "skill_name": "auto-follow-coding-checklist",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Work on the next task in TASKS.md",
+      "expected_output": "Reads TASKS.md, picks the first open task, breaks it into TDD-ordered subtasks, updates TASKS.md with subtasks indented under the main task, and creates Task-tool entries for each subtask (work task + commit task pairs), starting with a branch checkout task if a branch is specified.",
+      "files": [
+        {
+          "path": "TASKS.md",
+          "content": "# Project Tasks\n\n- [x] Set up project scaffold\n- [ ] Build user authentication module\n- [ ] Add REST API for todos\n"
+        }
+      ],
+      "assertions": [
+        {
+          "id": "reads-tasks-md",
+          "text": "The skill reads TASKS.md and identifies 'Build user authentication module' as the first open task",
+          "type": "qualitative"
+        },
+        {
+          "id": "tdd-ordering",
+          "text": "The subtasks include writing stubs/tests before implementation code (TDD order)",
+          "type": "qualitative"
+        },
+        {
+          "id": "tasks-md-updated",
+          "text": "TASKS.md is updated with subtasks indented under the main task",
+          "type": "qualitative"
+        },
+        {
+          "id": "task-tool-created",
+          "text": "TaskCreate is called at least once to create execution tasks",
+          "type": "qualitative"
+        },
+        {
+          "id": "commit-tasks-present",
+          "text": "Each subtask is paired with a commit-and-push task",
+          "type": "qualitative"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Pick up the next item from the checklist and start working",
+      "expected_output": "Reads TASKS.md, sees a branch instruction, creates a branch checkout task first, then breaks the task into subtasks following TDD, updates TASKS.md, and creates task-tool tasks.",
+      "files": [
+        {
+          "path": "TASKS.md",
+          "content": "# Project Tasks\n<!-- branch: feature/csv-parser -->\n\n- [x] Set up repository\n- [ ] Implement CSV parser with validation\n- [ ] Write CLI interface\n"
+        }
+      ],
+      "assertions": [
+        {
+          "id": "branch-detected",
+          "text": "The skill detects the branch instruction 'feature/csv-parser' from TASKS.md",
+          "type": "qualitative"
+        },
+        {
+          "id": "branch-task-created",
+          "text": "A task to checkout or create the 'feature/csv-parser' branch is created before any implementation tasks",
+          "type": "qualitative"
+        },
+        {
+          "id": "tdd-for-csv-parser",
+          "text": "Subtasks include writing stubs and failing tests before implementing the CSV parser",
+          "type": "qualitative"
+        },
+        {
+          "id": "tasks-md-updated-with-subtasks",
+          "text": "TASKS.md is updated with subtasks indented under 'Implement CSV parser with validation'",
+          "type": "qualitative"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "continue from the checklist",
+      "expected_output": "Reads TASKS.md, sees a simple atomic task with no subtasks needed, creates just a work task and a commit task (no complex breakdown required), updates TASKS.md accordingly.",
+      "files": [
+        {
+          "path": "TASKS.md",
+          "content": "# Tasks\n\n- [x] Init repo\n- [x] Add .gitignore\n- [ ] Rename variable `user_nm` to `username` in src/models/user.py\n- [ ] Add logging to all API endpoints\n"
+        }
+      ],
+      "assertions": [
+        {
+          "id": "correct-task-selected",
+          "text": "The skill picks 'Rename variable user_nm to username in src/models/user.py' as the first open task (not the logging task)",
+          "type": "qualitative"
+        },
+        {
+          "id": "atomic-task-handling",
+          "text": "The skill recognizes this as a simple atomic task and does not overcomplicate it with unnecessary subtasks",
+          "type": "qualitative"
+        },
+        {
+          "id": "commit-task-exists",
+          "text": "A commit & push task is created after the rename task",
+          "type": "qualitative"
+        }
+      ]
+    }
+  ]
+}
