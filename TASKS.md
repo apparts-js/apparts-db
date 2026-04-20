@@ -1,7 +1,7 @@
 - [x] Setup github workflow for testing dynamo db (use branch feature/dynamo)
   - [x] Write failing DynamoDB Local connectivity stub test, commit
   - [x] Add GitHub Actions workflow with DynamoDB Local service and implement connectivity test to pass, commit & push
-- [ ] Implement class for dynamo db (use branch feature/dynamo). Only implement what is possible with dynamo. Other stuff should throw a NotSupportedByDBEngine error
+- [x] Implement class for dynamo db (use branch feature/dynamo). Only implement what is possible with dynamo. Other stuff should throw a NotSupportedByDBEngine error
   - [x] Add NotSupportedByDBEngine error and stub DynamoDB classes (DBS, Queriable, Query, Transaction, Config, index) with all abstract methods stubbed to throw; add failing tests that exercise the stubs, commit & push
   - [x] Add @aws-sdk/client-dynamodb + lib-dynamodb deps; implement DBS connection, shutdown, id functions; wire connect() in src/index.ts and Config.ts so DynamoDB can be selected; commit & push
   - [x] Implement Query operations (insert, findById, findByIds, remove, toArray, count, update, updateOne, find with filter expressions); unsupported operators (like, ilike, oftype, of with JSON path) throw NotSupportedByDBEngine; commit & push
