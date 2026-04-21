@@ -147,15 +147,25 @@ cat pyproject.toml 2>/dev/null | grep -A5 '\[tool'
 cat README.md 2>/dev/null | grep -i -A2 'test\|run'
 ```
 
-**Coverage:** Run the project's coverage tool and check that every new function or branch has at least one test. Write missing tests and commit them.
+**Get the commit range** for this branch:
+```bash
+BASE=$(git merge-base main HEAD)
+RANGE="${BASE}..HEAD"
+```
 
-**Bug audit:** Re-read the diff with fresh eyes:
-- Off-by-one errors, null/undefined paths, unhandled edge cases?
-- Error handling that silently swallows failures?
-- Race conditions or state-mutation issues?
-- Empty inputs, boundary values, unexpected types?
+**Test coverage audit:** Invoke the `verify-tests` skill via the Skill tool with the commit range — this runs it in its own forked context for an independent assessment:
+```
+Skill("verify-tests", args=RANGE)
+```
+If `verify-tests` is not listed in available skills, do this manually: read every changed source file and its `.test.ts` counterpart, check that every new method and branch has at least one test, and write any missing tests.
 
-Fix any bugs found (each fix = its own commit). Then check off "Verify test coverage and audit for bugs" in the issue.
+**Code review / bug audit:** Invoke the `code-review` skill via the Skill tool with the same range:
+```
+Skill("code-review", args=RANGE)
+```
+If `code-review` is not listed in available skills, do this manually — re-read the diff with fresh eyes looking for: off-by-one errors, null/undefined paths, unhandled edge cases, error handling that silently swallows failures, race conditions, empty inputs, boundary values, unexpected types.
+
+Fix any issues found (each fix = its own commit). Then check off "Verify test coverage and audit for bugs" in the issue.
 
 ### A5 — Create the PR
 

@@ -1,10 +1,11 @@
 ---
 name: verify-tests
-description: Audit test cases for completeness and correctness in this @apparts/db TypeScript codebase. Use this skill whenever the user asks to check, review, verify, or improve test coverage — including "are there missing tests?", "what should I test?", "is this well tested?", or after adding a new feature or operator.
+description: Audit test cases for completeness and correctness in this @apparts/db TypeScript codebase. Invoke with a commit range to focus on changed files, e.g. "/verify-tests abc123..def456". Use whenever the user asks to check, review, verify, or improve test coverage.
 allowed-tools: Read, Glob, Grep, Bash
 context: fork
 agent: general-purpose
 model: claude-opus-4-7
+argument-hint: <from-commit>..<to-commit>
 ---
 
 # Verify Test Completeness
@@ -13,13 +14,13 @@ Your job is to audit the test suite for completeness and quality. This is not a 
 
 ## How to approach the audit
 
-1. **Read the source first.** For each source file under review, enumerate every public method, every operator/case in switch statements, and every branch in conditional logic. These are your coverage targets.
+1. **Determine scope.** If `$ARGUMENTS` contains a commit range, derive the source files to audit from `git diff --name-only $ARGUMENTS` and focus only on those. If no range is given, audit the full test suite — all `.test.ts` files under `src/`.
 
-2. **Map source → tests.** For each target you found, locate the corresponding test(s) in the `.test.ts` file alongside it. Note what's covered, what's thin (one test), and what's missing entirely.
+2. **Read the source first.** For each source file under review, enumerate every public method, every operator/case in switch statements, and every branch in conditional logic. These are your coverage targets.
 
-3. **Check for correctness gotchas.** Beyond missing tests, look for tests that exist but are subtly wrong and won't actually catch bugs. See `${CLAUDE_SKILL_DIR}/references/gotchas.md` for known patterns specific to this codebase.
+3. **Map source → tests.** For each target you found, locate the corresponding test(s) in the `.test.ts` file alongside it. Note what's covered, what's thin (one test), and what's missing entirely.
 
-4. **Report findings** in a structured way (see below).
+4. **Check for correctness gotchas.** Beyond missing tests, look for tests that exist but are subtly wrong and won't actually catch bugs. See `${CLAUDE_SKILL_DIR}/references/gotchas.md` for known patterns specific to this codebase.
 
 ## What to examine
 
@@ -38,29 +39,42 @@ For a checklist of what each part of the codebase should have tested, read:
 
 ## Report format
 
-Structure your findings as:
+```
+## Summary
+<one paragraph: scope reviewed and overall assessment>
 
-### ✅ Well covered
-List methods/cases that have solid test coverage.
+## Missing tests
+<only present if there are gaps>
 
-### ⚠️ Thin coverage
-List items with only 1–2 tests where edge cases could still hide bugs. Suggest what to add.
+### <method or case name>
+**File:** `path/to/file.ts`
+**Gap:** <what's missing and what bug could slip through>
+**Suggested test:**
+\`\`\`typescript
+<concrete Jest skeleton>
+\`\`\`
 
-### ❌ Missing tests
-List methods or branches with zero coverage. For each, explain *why* it matters — what bug could slip through? Suggest a concrete test case.
+## Thin coverage
+<only present if there are thin areas>
 
-### 🐛 Correctness issues
-Tests that exist but won't reliably catch bugs (wrong assertion style, missing await, etc.). Point to the specific line and explain what would go wrong.
+### <method or case name>
+**File:** `path/to/file.ts`
+**Gap:** <what edge cases are unprotected>
+**Suggested test:**
+\`\`\`typescript
+<concrete Jest skeleton>
+\`\`\`
 
-### Recommended next tests
-Pick the 3–5 highest-value tests to add first, ordered by risk. Write them out as concrete Jest test skeletons the user can paste in.
+## Correctness issues
+<only present if tests exist but are subtly wrong>
 
-## Scope
-
-If the user specifies a file or method, focus there. Otherwise audit the full test suite. Start by running:
-
-```bash
-find /workspace/src -name "*.test.ts" | sort
+### <short title>
+**File:** `path/to/file.test.ts`, line <N>
+**Problem:** <why the test won't catch the bug it's meant to catch>
+**Fix:**
+\`\`\`typescript
+<corrected test code>
+\`\`\`
 ```
 
-Then read both the test file and the corresponding source file side-by-side.
+Omit a section entirely if it has no findings. Every finding must include a ready-to-paste Jest skeleton or fix.
