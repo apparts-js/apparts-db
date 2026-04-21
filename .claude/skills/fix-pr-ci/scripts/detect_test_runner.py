@@ -8,6 +8,7 @@ Run from the project root.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -66,7 +67,6 @@ def detect(root: Path) -> str | None:
 
 
 if __name__ == "__main__":
-    import re
     cmd = detect(Path.cwd())
     if cmd:
         print(cmd)

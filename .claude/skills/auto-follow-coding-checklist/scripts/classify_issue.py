@@ -12,6 +12,7 @@ Outputs JSON with the state and all relevant IDs needed to act on it:
   "state": "D",          -- PR has failing CI checks
   "state": "E",          -- PR is open, ready, CI green — waiting on reviewer
   "state": "F",          -- PR has merge conflicts
+  "state": "G",          -- Stacked PR: base branch merged/deleted, needs retargeting
 
   "issue_number": 42,
   "pr_number": 7,        -- null if no PR
@@ -52,6 +53,7 @@ def classify(issue_number: int) -> dict:
         "has_subtasks": False,
         "has_branch": False,
         "dependencies": [],
+        "stale_base": None,
     }
 
     # --- Issue body ----------------------------------------------------------
@@ -128,7 +130,7 @@ def classify(issue_number: int) -> dict:
             except json.JSONDecodeError:
                 pass
 
-    # --- Classify (priority: F > D > C > B > A > E) -------------------------
+    # --- Classify (priority: F > D > C > G > B > A > E) ---------------------
     if pr_number:
         if (result["mergeable"] == "CONFLICTING"
                 or result["merge_state_status"] == "DIRTY"):
@@ -138,7 +140,18 @@ def classify(issue_number: int) -> dict:
         elif result["is_draft"] and result["has_comments"]:
             result["state"] = "C"
         else:
-            result["state"] = "E"
+            # Check if this is a stacked PR whose base branch has been merged/deleted
+            pr_base = run(["gh", "pr", "view", str(pr_number),
+                           "--json", "baseRefName", "-q", ".baseRefName"])
+            default_branch = (run(["gh", "repo", "view", "--json", "defaultBranchRef",
+                                   "-q", ".defaultBranchRef.name"]) or "main")
+            if pr_base and pr_base != default_branch:
+                remote_ref = run(["git", "ls-remote", "--heads", "origin", pr_base])
+                if not remote_ref:
+                    result["state"] = "G"
+                    result["stale_base"] = pr_base
+            if result["state"] is None:
+                result["state"] = "E"
     else:
         result["state"] = "B" if (result["has_branch"] or result["has_subtasks"]) else "A"
 

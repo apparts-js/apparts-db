@@ -1,6 +1,6 @@
 ---
 name: auto-follow-coding-checklist
-description: Work autonomously on GitHub issues tagged "claude": pick highest-priority open issue, plan subtasks, implement with TDD, open PR. Also resumes in-progress issues, fixes CI, resolves conflicts, addresses draft PR comments. Trigger on: "work on next issue", "pick up claude issues", "do the next task".
+description: Work autonomously on GitHub issues tagged 'claude': pick highest-priority open issue, plan+implement with TDD, open PR. Resumes in-progress work, fixes CI, resolves conflicts, addresses review comments. Use for: 'work on next issue', 'next task'.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, TaskCreate, TaskUpdate, TaskList
 context: fork
 agent: general-purpose
@@ -62,6 +62,7 @@ State meanings (already prioritized by the script):
 | **F** | PR has merge conflicts |
 | **D** | PR has failing CI |
 | **C** | Draft PR with review comments (CI passing) |
+| **G** | Stacked PR — base branch merged/deleted, needs retargeting |
 | **B** | Branch/subtasks exist but no open PR yet |
 | **A** | Fresh — no branch, no PR, no subtasks |
 | **E** | PR open and ready, CI green — waiting on human reviewer |
@@ -220,13 +221,38 @@ Run existing tests first to confirm a clean baseline. Then complete remaining su
 
 ## State F — Merge conflicts
 
-Invoke the `/resolve-pr-conflicts <pr-number>` skill. It will rebase the branch onto its base, resolve all conflicts, verify tests, and force-push.
+```
+Skill("resolve-pr-conflicts", args=str(pr_number))
+```
 
 ---
 
 ## State D — Failing CI
 
-Invoke the `/fix-pr-ci <pr-number>` skill. It will read the failing logs, fix or re-trigger each failure, and confirm CI is green.
+```
+Skill("fix-pr-ci", args=str(pr_number))
+```
+
+---
+
+## State G — Stacked PR: base branch merged, needs retargeting
+
+The PR's base branch no longer exists on the remote — it was merged and deleted. Retarget the PR to the default branch and rebase:
+
+```bash
+DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+gh pr edit <pr-number> --base $DEFAULT
+gh pr checkout <pr-number>
+git fetch origin
+git rebase origin/$DEFAULT
+git push --force-with-lease
+```
+
+If the rebase produces conflicts, resolve them the same way as State F (pick both sides' real logic, don't just discard one). After force-pushing, verify CI triggers cleanly:
+
+```bash
+gh pr checks <pr-number> --watch
+```
 
 ---
 
