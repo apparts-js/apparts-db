@@ -100,4 +100,22 @@ runOrSkip("DynamoDB Transaction", () => {
       .toArray();
     expect(rows).toEqual([]);
   });
+
+  test("read operations inside a transaction throw NotSupportedByDBEngine", async () => {
+    await expect(
+      dbs.transaction(async (t) => {
+        t.collection(TEST_TABLE).find({});
+      })
+    ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
+    await expect(
+      dbs.transaction(async (t) => {
+        t.collection(TEST_TABLE).findById({ id: "x" });
+      })
+    ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
+    await expect(
+      dbs.transaction(async (t) => {
+        await t.collection(TEST_TABLE).count();
+      })
+    ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
+  });
 });

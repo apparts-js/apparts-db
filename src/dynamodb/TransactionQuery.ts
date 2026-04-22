@@ -1,6 +1,6 @@
 import { TransactWriteCommandInput } from "@aws-sdk/lib-dynamodb";
 
-import { Id, NotSupportedByDBEngine, Params, Result } from "../generic";
+import { Id, NotSupportedByDBEngine, Order, Params, Result } from "../generic";
 import Query from "./Query";
 
 export type TransactItem = NonNullable<
@@ -8,6 +8,15 @@ export type TransactItem = NonNullable<
 >[number];
 
 const PK = "id";
+
+// TransactWriteItems buffers writes client-side until commit(), and DynamoDB
+// has no way to observe the buffered writes on reads. Rather than silently
+// returning stale data, reject every read path - the caller should stage
+// writes, commit, and then read via the outer DBS. See audit finding H-TQ1.
+const REJECT_READ = () =>
+  new NotSupportedByDBEngine(
+    "Reads inside a DynamoDB transaction are not supported - the buffered writes are not visible to Scan/Get until commit(). Commit the transaction and read via the outer DBS."
+  );
 
 const isSinglePrimaryKeyLookup = (
   params: Params
@@ -49,6 +58,47 @@ class TransactionQuery extends Query {
   ) {
     super(client, table, dbs);
     this._writes = writes;
+  }
+
+  find(
+    _params: Params,
+    _limit?: number,
+    _offset?: number,
+    _order?: Order
+  ): this {
+    throw REJECT_READ();
+  }
+
+  findById(
+    _id: Params,
+    _limit?: number,
+    _offset?: number,
+    _order?: Order
+  ): this {
+    throw REJECT_READ();
+  }
+
+  findByIds(
+    _ids: Params,
+    _limit?: number,
+    _offset?: number,
+    _order?: Order
+  ): this {
+    throw REJECT_READ();
+  }
+
+  async toArray<T>(): Promise<T[]> {
+    throw REJECT_READ();
+  }
+
+  async count(): Promise<number> {
+    throw REJECT_READ();
+  }
+
+  async drop(): Promise<void> {
+    throw new NotSupportedByDBEngine(
+      "TransactionQuery.drop: DynamoDB tables cannot be dropped inside a transaction."
+    );
   }
 
   async insert(

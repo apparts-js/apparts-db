@@ -1,11 +1,13 @@
-import { GenericQueriable, Id } from "../generic";
+import { GenericQueriable, Id, NotSupportedByDBEngine } from "../generic";
 import { DynamoConfig } from "./Config";
 
 export abstract class Queriable extends GenericQueriable {
   _config: DynamoConfig;
 
   newId(): Id {
-    return undefined as unknown as Id;
+    throw new NotSupportedByDBEngine(
+      "Queriable.newId: DynamoDB does not auto-generate primary keys; supply your own id on every insert."
+    );
   }
 
   fromId(id: Id) {
