@@ -29,11 +29,20 @@ type QueryState = {
   order?: Order;
 };
 
-type FilterExpr = {
-  expr: string;
-  attrNames: Record<string, string>;
-  attrValues: Record<string, unknown>;
-};
+export type FilterExprResult =
+  | { kind: "empty" }
+  | { kind: "always_false" }
+  | {
+      kind: "expr";
+      expr: string;
+      attrNames: Record<string, string>;
+      attrValues: Record<string, unknown>;
+    };
+
+type OperatorResult =
+  | { kind: "expr"; expr: string }
+  | { kind: "always_false" }
+  | { kind: "always_true" };
 
 const PK = "id";
 
@@ -61,38 +70,73 @@ const buildOperator = (
   val: unknown,
   attrNames: Record<string, string>,
   attrValues: Record<string, unknown>
-): string => {
-  const n = namePlaceholder(attr, attrNames);
+): OperatorResult => {
   switch (op) {
-    case "exists":
-      return `${
-        val === true ? "attribute_exists" : "attribute_not_exists"
-      }(${n})`;
+    case "exists": {
+      const n = namePlaceholder(attr, attrNames);
+      return {
+        kind: "expr",
+        expr: `${
+          val === true ? "attribute_exists" : "attribute_not_exists"
+        }(${n})`,
+      };
+    }
     case "in": {
       const vals = val as (string | number | boolean | null)[];
-      if (vals.length === 0) return "1 = 0";
+      if (vals.length === 0) return { kind: "always_false" };
+      const n = namePlaceholder(attr, attrNames);
       const placeholders = vals.map((v) => valuePlaceholder(v, attrValues));
-      return `${n} IN (${placeholders.join(", ")})`;
+      return { kind: "expr", expr: `${n} IN (${placeholders.join(", ")})` };
     }
     case "notin": {
       const vals = val as (string | number | boolean | null)[];
-      if (vals.length === 0) return "1 = 1";
+      if (vals.length === 0) return { kind: "always_true" };
+      const n = namePlaceholder(attr, attrNames);
       const placeholders = vals.map((v) => valuePlaceholder(v, attrValues));
-      return `NOT (${n} IN (${placeholders.join(", ")}))`;
+      return {
+        kind: "expr",
+        expr: `NOT (${n} IN (${placeholders.join(", ")}))`,
+      };
     }
-    case "lte":
-      return `${n} <= ${valuePlaceholder(val, attrValues)}`;
-    case "lt":
-      return `${n} < ${valuePlaceholder(val, attrValues)}`;
-    case "gte":
-      return `${n} >= ${valuePlaceholder(val, attrValues)}`;
-    case "gt":
-      return `${n} > ${valuePlaceholder(val, attrValues)}`;
+    case "lte": {
+      const n = namePlaceholder(attr, attrNames);
+      return {
+        kind: "expr",
+        expr: `${n} <= ${valuePlaceholder(val, attrValues)}`,
+      };
+    }
+    case "lt": {
+      const n = namePlaceholder(attr, attrNames);
+      return {
+        kind: "expr",
+        expr: `${n} < ${valuePlaceholder(val, attrValues)}`,
+      };
+    }
+    case "gte": {
+      const n = namePlaceholder(attr, attrNames);
+      return {
+        kind: "expr",
+        expr: `${n} >= ${valuePlaceholder(val, attrValues)}`,
+      };
+    }
+    case "gt": {
+      const n = namePlaceholder(attr, attrNames);
+      return {
+        kind: "expr",
+        expr: `${n} > ${valuePlaceholder(val, attrValues)}`,
+      };
+    }
     case "and": {
-      const parts = (val as { op: string; val: unknown }[]).map((v) =>
+      const sub = (val as { op: string; val: unknown }[]).map((v) =>
         buildOperator(attr, v.op, v.val, attrNames, attrValues)
       );
-      return `(${parts.join(" AND ")})`;
+      if (sub.some((r) => r.kind === "always_false"))
+        return { kind: "always_false" };
+      const exprs = sub
+        .filter((r): r is { kind: "expr"; expr: string } => r.kind === "expr")
+        .map((r) => r.expr);
+      if (exprs.length === 0) return { kind: "always_true" };
+      return { kind: "expr", expr: `(${exprs.join(" AND ")})` };
     }
     case "like":
     case "ilike":
@@ -114,34 +158,45 @@ const buildOperator = (
   }
 };
 
-const buildFilterExpression = (params: Params): FilterExpr => {
+export const buildFilterExpression = (params: Params): FilterExprResult => {
   const attrNames: Record<string, string> = {};
   const attrValues: Record<string, unknown> = {};
   const keys = Object.keys(params);
   if (keys.length === 0) {
-    return { expr: "", attrNames, attrValues };
+    return { kind: "empty" };
   }
-  const clauses = keys.map((key) => {
+  const clauses: string[] = [];
+  for (const key of keys) {
     const val = params[key];
     if (val === null) {
       const n = namePlaceholder(key, attrNames);
-      return `attribute_not_exists(${n})`;
+      clauses.push(`attribute_not_exists(${n})`);
+      continue;
     }
     if (typeof val !== "object") {
       const n = namePlaceholder(key, attrNames);
       const v = valuePlaceholder(val, attrValues);
-      return `${n} = ${v}`;
+      clauses.push(`${n} = ${v}`);
+      continue;
     }
     if (Array.isArray(val)) {
-      if (val.length === 0) return "1 = 0";
+      if (val.length === 0) return { kind: "always_false" };
       const n = namePlaceholder(key, attrNames);
       const placeholders = val.map((v) => valuePlaceholder(v, attrValues));
-      return `${n} IN (${placeholders.join(", ")})`;
+      clauses.push(`${n} IN (${placeholders.join(", ")})`);
+      continue;
     }
     const filter = val as Filter;
-    return buildOperator(key, filter.op, filter.val, attrNames, attrValues);
-  });
+    const r = buildOperator(key, filter.op, filter.val, attrNames, attrValues);
+    if (r.kind === "always_false") return { kind: "always_false" };
+    if (r.kind === "always_true") continue;
+    clauses.push(r.expr);
+  }
+  if (clauses.length === 0) {
+    return { kind: "empty" };
+  }
   return {
+    kind: "expr",
     expr: clauses.join(" AND "),
     attrNames,
     attrValues,
@@ -269,9 +324,10 @@ class Query extends GenericQuery {
       }
     }
 
-    const input = this._buildScanInput(params, limit);
+    const scanInput = this._buildScanInput(params, limit);
+    if (scanInput.kind === "always_false") return [];
     try {
-      const res = await this._client.send(new ScanCommand(input));
+      const res = await this._client.send(new ScanCommand(scanInput.input));
       return (res.Items ?? []) as T[];
     } catch (e) {
       this._log("Error in toArray:", "Scan", { params }, e);
@@ -281,10 +337,11 @@ class Query extends GenericQuery {
 
   async count(): Promise<number> {
     const { params, limit } = this._state;
-    const input = this._buildScanInput(params, limit);
-    input.Select = "COUNT";
+    const scanInput = this._buildScanInput(params, limit);
+    if (scanInput.kind === "always_false") return 0;
+    scanInput.input.Select = "COUNT";
     try {
-      const res = await this._client.send(new ScanCommand(input));
+      const res = await this._client.send(new ScanCommand(scanInput.input));
       return res.Count ?? 0;
     } catch (e) {
       this._log("Error in count:", "Scan (COUNT)", { params }, e);
@@ -292,18 +349,22 @@ class Query extends GenericQuery {
     }
   }
 
-  _buildScanInput(params: Params, limit?: number): ScanCommandInput {
-    const { expr, attrNames, attrValues } = buildFilterExpression(params);
+  _buildScanInput(
+    params: Params,
+    limit?: number
+  ): { kind: "always_false" } | { kind: "input"; input: ScanCommandInput } {
+    const filter = buildFilterExpression(params);
+    if (filter.kind === "always_false") return { kind: "always_false" };
     const input: ScanCommandInput = { TableName: this._table };
-    if (expr) {
-      input.FilterExpression = expr;
-      input.ExpressionAttributeNames = attrNames;
-      input.ExpressionAttributeValues = attrValues;
+    if (filter.kind === "expr") {
+      input.FilterExpression = filter.expr;
+      input.ExpressionAttributeNames = filter.attrNames;
+      input.ExpressionAttributeValues = filter.attrValues;
     }
     if (limit) {
       input.Limit = limit;
     }
-    return input;
+    return { kind: "input", input };
   }
 
   async insert(
