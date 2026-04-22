@@ -75,6 +75,35 @@ runOrSkip("DynamoDB Query CRUD", () => {
       .toArray();
     expect(rows).toEqual([]);
   });
+
+  test("insert rejects duplicate primary keys with _code: 1", async () => {
+    await dbs.collection(TEST_TABLE).insert([{ id: "dup", number: 1 }]);
+    await expect(
+      dbs.collection(TEST_TABLE).insert([{ id: "dup", number: 2 }])
+    ).rejects.toMatchObject({
+      msg: "ERROR, tried to insert, not unique",
+      _code: 1,
+    });
+    // Original row is preserved.
+    const rows = await dbs
+      .collection(TEST_TABLE)
+      .findById({ id: "dup" })
+      .toArray<{ id: string; number: number }>();
+    expect(rows).toEqual([{ id: "dup", number: 1 }]);
+  });
+
+  test("update of a non-existent row returns rowCount: 0", async () => {
+    const res = await dbs
+      .collection(TEST_TABLE)
+      .update({ id: "never-seen" }, { number: 99 });
+    expect(res.rowCount).toBe(0);
+    // No upsert happened.
+    const rows = await dbs
+      .collection(TEST_TABLE)
+      .findById({ id: "never-seen" })
+      .toArray();
+    expect(rows).toEqual([]);
+  });
 });
 
 runOrSkip("DynamoDB Query unsupported operators", () => {

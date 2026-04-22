@@ -70,4 +70,34 @@ runOrSkip("DynamoDB Transaction", () => {
       })
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
+
+  test("transaction insert of an existing primary key cancels the transaction", async () => {
+    await dbs.collection(TEST_TABLE).insert([{ id: "tx-dup", number: 1 }]);
+    await expect(
+      dbs.transaction(async (t) => {
+        await t.collection(TEST_TABLE).insert([{ id: "tx-dup", number: 99 }]);
+      })
+    ).rejects.toThrow();
+    // The pre-existing row is preserved because TransactWriteItems is atomic.
+    const rows = await dbs
+      .collection(TEST_TABLE)
+      .findById({ id: "tx-dup" })
+      .toArray<{ id: string; number: number }>();
+    expect(rows).toEqual([{ id: "tx-dup", number: 1 }]);
+  });
+
+  test("transaction update of a non-existent row cancels the transaction", async () => {
+    await expect(
+      dbs.transaction(async (t) => {
+        await t
+          .collection(TEST_TABLE)
+          .update({ id: "tx-missing" }, { number: 99 });
+      })
+    ).rejects.toThrow();
+    const rows = await dbs
+      .collection(TEST_TABLE)
+      .findById({ id: "tx-missing" })
+      .toArray();
+    expect(rows).toEqual([]);
+  });
 });

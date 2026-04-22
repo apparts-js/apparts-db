@@ -65,7 +65,14 @@ class TransactionQuery extends Query {
       );
     }
     for (const Item of content) {
-      this._writes.push({ Put: { TableName: this._table, Item } });
+      this._writes.push({
+        Put: {
+          TableName: this._table,
+          Item,
+          ConditionExpression: "attribute_not_exists(#pk)",
+          ExpressionAttributeNames: { "#pk": PK },
+        },
+      });
     }
     return content.map((item) => {
       const r: Record<string, Id> = {};
@@ -90,7 +97,7 @@ class TransactionQuery extends Query {
     if (setKeys.length === 0) {
       return { rows: [] as T[], rowCount: 0 };
     }
-    const attrNames: Record<string, string> = {};
+    const attrNames: Record<string, string> = { "#pk": PK };
     const attrValues: Record<string, unknown> = {};
     const assignments = setKeys.map((k) => {
       const n = namePlaceholder(k, attrNames);
@@ -102,6 +109,7 @@ class TransactionQuery extends Query {
         TableName: this._table,
         Key: { [PK]: single.key },
         UpdateExpression: "SET " + assignments.join(", "),
+        ConditionExpression: "attribute_exists(#pk)",
         ExpressionAttributeNames: attrNames,
         ExpressionAttributeValues: attrValues,
       },

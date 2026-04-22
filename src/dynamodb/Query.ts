@@ -10,6 +10,12 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
+export const isConditionalCheckFailed = (e: unknown): boolean =>
+  typeof e === "object" &&
+  e !== null &&
+  "name" in e &&
+  (e as { name: unknown }).name === "ConditionalCheckFailedException";
+
 import {
   Filter,
   GenericQuery,
@@ -382,33 +388,33 @@ class Query extends GenericQuery {
       );
     }
 
+    // Use PutCommand with attribute_not_exists condition per item so that
+    // duplicate primary keys surface as `{_code: 1}`, matching the Postgres
+    // driver's 23505 translation. DynamoDB's BatchWriteCommand does not
+    // accept ConditionExpression, so we issue individual Puts in parallel.
+    // Multi-item inserts are therefore not atomic - use a transaction if
+    // atomicity is required.
     try {
-      if (content.length === 1) {
-        await this._client.send(
-          new PutCommand({
-            TableName: this._table,
-            Item: content[0],
-          })
-        );
-      } else {
-        const chunks: Record<string, unknown>[][] = [];
-        for (let i = 0; i < content.length; i += 25) {
-          chunks.push(content.slice(i, i + 25));
-        }
-        for (const chunk of chunks) {
-          await this._client.send(
-            new BatchWriteCommand({
-              RequestItems: {
-                [this._table]: chunk.map((Item) => ({
-                  PutRequest: { Item },
-                })),
-              },
+      await Promise.all(
+        content.map((Item) =>
+          this._client.send(
+            new PutCommand({
+              TableName: this._table,
+              Item,
+              ConditionExpression: "attribute_not_exists(#pk)",
+              ExpressionAttributeNames: { "#pk": PK },
             })
-          );
-        }
-      }
+          )
+        )
+      );
     } catch (e) {
-      this._log("Error in insert:", "PutItem/BatchWriteItem", { content }, e);
+      if (isConditionalCheckFailed(e)) {
+        return Promise.reject({
+          msg: "ERROR, tried to insert, not unique",
+          _code: 1,
+        });
+      }
+      this._log("Error in insert:", "PutItem", { content }, e);
       throw e;
     }
 
@@ -446,7 +452,7 @@ class Query extends GenericQuery {
       return { rows: [] as T[], rowCount: 0 };
     }
 
-    const attrNames: Record<string, string> = {};
+    const attrNames: Record<string, string> = { "#pk": PK };
     const attrValues: Record<string, unknown> = {};
     const assignments = setKeys.map((k) => {
       const n = namePlaceholder(k, attrNames);
@@ -460,12 +466,18 @@ class Query extends GenericQuery {
           TableName: this._table,
           Key: { [PK]: single.key },
           UpdateExpression: "SET " + assignments.join(", "),
+          // Without this, UpdateItem would upsert. Match the Postgres
+          // UPDATE ... WHERE id = ... semantics: missing row -> rowCount 0.
+          ConditionExpression: "attribute_exists(#pk)",
           ExpressionAttributeNames: attrNames,
           ExpressionAttributeValues: attrValues,
         })
       );
       return { rows: [] as T[], rowCount: 1 };
     } catch (e) {
+      if (isConditionalCheckFailed(e)) {
+        return { rows: [] as T[], rowCount: 0 };
+      }
       this._log("Error in update:", "UpdateItem", { filter, c }, e);
       throw e;
     }
