@@ -4,6 +4,8 @@ import {
   DescribeTableCommand,
   DynamoDBClient,
   ResourceNotFoundException,
+  waitUntilTableExists,
+  waitUntilTableNotExists,
 } from "@aws-sdk/client-dynamodb";
 
 import { connectDynamo, DynamoConfig } from "../dynamodb";
@@ -26,39 +28,54 @@ const rawClient = () =>
     credentials: { accessKeyId: "local", secretAccessKey: "local" },
   });
 
+const WAIT_SECONDS = 30;
+
 export const ensureTable = async (tableName: string) => {
   const client = rawClient();
   try {
-    await client.send(new DescribeTableCommand({ TableName: tableName }));
-    await client.send(new DeleteTableCommand({ TableName: tableName }));
-  } catch (e) {
-    if (!(e instanceof ResourceNotFoundException)) {
-      client.destroy();
-      throw e;
+    try {
+      await client.send(new DescribeTableCommand({ TableName: tableName }));
+      await client.send(new DeleteTableCommand({ TableName: tableName }));
+      await waitUntilTableNotExists(
+        { client, maxWaitTime: WAIT_SECONDS },
+        { TableName: tableName }
+      );
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundException)) throw e;
     }
+    await client.send(
+      new CreateTableCommand({
+        TableName: tableName,
+        AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
+        KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+    await waitUntilTableExists(
+      { client, maxWaitTime: WAIT_SECONDS },
+      { TableName: tableName }
+    );
+  } finally {
+    client.destroy();
   }
-  await client.send(
-    new CreateTableCommand({
-      TableName: tableName,
-      AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
-      KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
-      BillingMode: "PAY_PER_REQUEST",
-    })
-  );
-  client.destroy();
 };
 
 export const dropTable = async (tableName: string) => {
   const client = rawClient();
   try {
-    await client.send(new DeleteTableCommand({ TableName: tableName }));
-  } catch (e) {
-    if (!(e instanceof ResourceNotFoundException)) {
-      client.destroy();
-      throw e;
+    try {
+      await client.send(new DeleteTableCommand({ TableName: tableName }));
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundException)) throw e;
+      return;
     }
+    await waitUntilTableNotExists(
+      { client, maxWaitTime: WAIT_SECONDS },
+      { TableName: tableName }
+    );
+  } finally {
+    client.destroy();
   }
-  client.destroy();
 };
 
 export const setupDbs = async () => {
