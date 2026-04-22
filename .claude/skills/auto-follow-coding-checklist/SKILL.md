@@ -91,14 +91,16 @@ gh issue edit <number> --body "$(gh issue view <number> --json body -q .body)
 - [ ] Write stubs and failing tests
 - [ ] Implement logic to pass tests
 - [ ] Update docs / README if needed
-- [ ] Verify test coverage and audit for bugs
-- [ ] Open PR with work summary
+- [ ] Open draft PR
+- [ ] Post test-coverage and code-review findings to PR (checkpoint)
+- [ ] Fix issues found in audit
+- [ ] Promote PR to ready for review
 - [ ] CI passes and PR is ready for review"
 ```
 
-The last three items are sequenced gates — never check one off before its condition is truly met (see A4, A5). This ensures the issue always has open checkboxes until the work is genuinely done.
+The last four items are sequenced gates — never check one off before its condition is truly met (see A2, A4, A5). This ensures the issue always has open checkboxes until the work is genuinely done.
 
-### A2 — Create and link a branch
+### A2 — Create branch and open a draft PR
 
 Branch name must include the issue number (GitHub uses this to auto-link).
 
@@ -119,6 +121,24 @@ git push -u origin <number>-<short-slug-of-title>
 
 For multi-level stacks (A→B→C), branch from the furthest unmerged branch in the chain. The PR targets the dependency branch, not main (see A5).
 
+Open a **draft** PR now so findings can be posted to it as a checkpoint in A4:
+
+```bash
+gh pr create \
+  --draft \
+  --title "<concise title matching the issue>" \
+  --body "$(cat <<'EOF'
+Work in progress — see issue #<number> for context.
+
+Closes #<number>
+EOF
+)" \
+  --head <branch-name> \
+  --base <main-or-dep-branch>
+```
+
+Capture the PR number (printed by `gh pr create`, or retrieve it with `gh pr view --json number -q .number`). Check off "Open draft PR" in the issue.
+
 ### A3 — Implement each subtask
 
 For each subtask:
@@ -136,9 +156,9 @@ git push
 
 Never mark a subtask complete if tests are failing.
 
-### A4 — Verify test coverage and audit for bugs
+### A4 — Audit, post findings as PR checkpoint, then fix
 
-This is a real quality gate, not a formality.
+This is a real quality gate, not a formality. Critically: findings are posted to the draft PR **before** any fixes so there is a permanent record of what was found — just like a linter checkpoint.
 
 **Discover the test runner** if you don't already know it:
 ```bash
@@ -154,25 +174,50 @@ BASE=$(git merge-base main HEAD)
 RANGE="${BASE}..HEAD"
 ```
 
-**Test coverage audit:** Invoke the `verify-tests` skill via the Skill tool with the commit range — this runs it in its own forked context for an independent assessment:
+**Step 1 — Run the audits.**
+
+Test coverage audit:
 ```
 Skill("verify-tests", args=RANGE)
 ```
-If `verify-tests` is not listed in available skills, do this manually: read every changed source file and its `.test.ts` counterpart, check that every new method and branch has at least one test, and write any missing tests.
+If `verify-tests` is not available, manually read every changed source file and its `.test.ts` counterpart and check every new method/branch has a test.
 
-**Code review / bug audit:** Invoke the `code-review` skill via the Skill tool with the same range:
+Code review / bug audit:
 ```
 Skill("code-review", args=RANGE)
 ```
-If `code-review` is not listed in available skills, do this manually — re-read the diff with fresh eyes looking for: off-by-one errors, null/undefined paths, unhandled edge cases, error handling that silently swallows failures, race conditions, empty inputs, boundary values, unexpected types.
+If `code-review` is not available, re-read the diff with fresh eyes: off-by-one errors, null/undefined paths, unhandled edge cases, silently-swallowed errors, race conditions, boundary values.
 
-Fix any issues found (each fix = its own commit). Then check off "Verify test coverage and audit for bugs" in the issue.
+**Step 2 — Save both outputs to temp files immediately** (before making any fixes):
+```bash
+cat > /tmp/verify-tests-results.md << 'ENDOFRESULTS'
+<paste the full verify-tests output here>
+ENDOFRESULTS
 
-### A5 — Create the PR
+cat > /tmp/code-review-results.md << 'ENDOFRESULTS'
+<paste the full code-review output here>
+ENDOFRESULTS
+```
+
+**Step 3 — Post findings to the draft PR as a checkpoint.** This records what was found before anything is changed:
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/post_review_comments.py \
+  <pr_number> /tmp/verify-tests-results.md --label "Verify Tests"
+
+python ${CLAUDE_SKILL_DIR}/scripts/post_review_comments.py \
+  <pr_number> /tmp/code-review-results.md --label "Code Review"
+```
+
+Each finding with a `**File:** path, line N` reference is posted as an inline comment on that diff line. Findings without a diff anchor are collected into a single general PR comment. Check off "Post test-coverage and code-review findings to PR (checkpoint)" in the issue.
+
+**Step 4 — Fix every issue found** (each fix = its own commit). Never mark the next subtask done if tests are failing. Then check off "Fix issues found in audit" in the issue.
+
+### A5 — Finalize PR body and promote to ready
+
+Update the PR body with a proper reviewer-facing summary, then promote the draft to ready:
 
 ```bash
-gh pr create \
-  --title "<concise title matching the issue>" \
+gh pr edit <pr-number> \
   --body "$(cat <<'EOF'
 ## Summary
 <2–4 sentences for a reviewer who hasn't seen the issue>
@@ -189,14 +234,13 @@ Stacked on #<dep-pr-number> (`<dep-branch-name>`). Merge after that one.
 
 Closes #<number>
 EOF
-)" \
-  --head <branch-name> \
-  --base <main-or-dep-branch>
+)"
+
+gh pr ready <pr-number>
 ```
 
-Immediately check off "Open PR" in the issue. Leave "CI passes and PR is ready for review" open.
+Check off "Promote PR to ready for review" in the issue. Then watch CI and check off the final item once green:
 
-Watch CI, then check off the final item once green:
 ```bash
 gh pr checks <pr-number> --watch
 # once green:
@@ -215,7 +259,9 @@ git checkout <branch-name> 2>/dev/null || git checkout --track origin/<branch-na
 git pull
 ```
 
-Run existing tests first to confirm a clean baseline. Then complete remaining subtasks following the same loop as A3. Run the coverage/bug-audit gate (A4) before opening the PR (A5). The PR summary should note that work was resumed and cover changes from both sessions.
+Run existing tests first to confirm a clean baseline. Then complete remaining subtasks following the same loop as A3.
+
+If no draft PR exists yet, open one now (same as A2) so the audit checkpoint in A4 has somewhere to post. Run the audit gate (A4) before promoting (A5). The PR summary should note that work was resumed and cover changes from both sessions.
 
 ---
 
