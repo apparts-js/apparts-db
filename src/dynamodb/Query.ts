@@ -10,12 +10,6 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-export const isConditionalCheckFailed = (e: unknown): boolean =>
-  typeof e === "object" &&
-  e !== null &&
-  "name" in e &&
-  (e as { name: unknown }).name === "ConditionalCheckFailedException";
-
 import {
   Filter,
   GenericQuery,
@@ -27,6 +21,12 @@ import {
 } from "../generic";
 import { DynamoConfig } from "./Config";
 import { LogFunc } from "./types";
+
+export const isConditionalCheckFailed = (e: unknown): boolean =>
+  typeof e === "object" &&
+  e !== null &&
+  "name" in e &&
+  (e as { name: unknown }).name === "ConditionalCheckFailedException";
 
 type QueryState = {
   params: Params;
@@ -313,16 +313,22 @@ class Query extends GenericQuery {
     if (batch.hit && batch.keys) {
       if (batch.keys.length === 0) return [];
       try {
-        const res = await this._client.send(
-          new BatchGetCommand({
-            RequestItems: {
-              [this._table]: {
-                Keys: batch.keys.map((k) => ({ [PK]: k })),
-              },
-            },
-          })
-        );
-        const rows = (res.Responses?.[this._table] ?? []) as T[];
+        const rows: T[] = [];
+        let pending: Record<string, unknown>[] = batch.keys.map((k) => ({
+          [PK]: k,
+        }));
+        while (pending.length > 0) {
+          const res = await this._client.send(
+            new BatchGetCommand({
+              RequestItems: { [this._table]: { Keys: pending } },
+            })
+          );
+          rows.push(...((res.Responses?.[this._table] ?? []) as T[]));
+          const next = res.UnprocessedKeys?.[this._table]?.Keys;
+          pending = Array.isArray(next)
+            ? (next as Record<string, unknown>[])
+            : [];
+        }
         return limit ? rows.slice(0, limit) : rows;
       } catch (e) {
         this._log("Error in toArray:", "BatchGetItem", { params }, e);
@@ -333,8 +339,16 @@ class Query extends GenericQuery {
     const scanInput = this._buildScanInput(params, limit);
     if (scanInput.kind === "always_false") return [];
     try {
-      const res = await this._client.send(new ScanCommand(scanInput.input));
-      return (res.Items ?? []) as T[];
+      const rows: T[] = [];
+      let startKey: Record<string, unknown> | undefined;
+      do {
+        if (startKey) scanInput.input.ExclusiveStartKey = startKey;
+        const res = await this._client.send(new ScanCommand(scanInput.input));
+        rows.push(...((res.Items ?? []) as T[]));
+        if (limit && rows.length >= limit) return rows.slice(0, limit);
+        startKey = res.LastEvaluatedKey;
+      } while (startKey);
+      return rows;
     } catch (e) {
       this._log("Error in toArray:", "Scan", { params }, e);
       throw e;
@@ -347,8 +361,16 @@ class Query extends GenericQuery {
     if (scanInput.kind === "always_false") return 0;
     scanInput.input.Select = "COUNT";
     try {
-      const res = await this._client.send(new ScanCommand(scanInput.input));
-      return res.Count ?? 0;
+      let total = 0;
+      let startKey: Record<string, unknown> | undefined;
+      do {
+        if (startKey) scanInput.input.ExclusiveStartKey = startKey;
+        const res = await this._client.send(new ScanCommand(scanInput.input));
+        total += res.Count ?? 0;
+        if (limit && total >= limit) return limit;
+        startKey = res.LastEvaluatedKey;
+      } while (startKey);
+      return total;
     } catch (e) {
       this._log("Error in count:", "Scan (COUNT)", { params }, e);
       throw e;
@@ -509,15 +531,18 @@ class Query extends GenericQuery {
           chunks.push(batch.keys.slice(i, i + 25));
         }
         for (const chunk of chunks) {
-          await this._client.send(
-            new BatchWriteCommand({
-              RequestItems: {
-                [this._table]: chunk.map((k) => ({
-                  DeleteRequest: { Key: { [PK]: k } },
-                })),
-              },
-            })
-          );
+          let pending = chunk.map((k) => ({
+            DeleteRequest: { Key: { [PK]: k } },
+          }));
+          while (pending.length > 0) {
+            const res = await this._client.send(
+              new BatchWriteCommand({
+                RequestItems: { [this._table]: pending },
+              })
+            );
+            const next = res.UnprocessedItems?.[this._table];
+            pending = Array.isArray(next) ? (next as typeof pending) : [];
+          }
         }
         return { rows: [] as T[], rowCount: batch.keys.length };
       } catch (e) {
