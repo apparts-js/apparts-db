@@ -35,3 +35,4 @@ jobs:
           DB_ENGINE: dynamodb
           DYNAMODB_HOST: localhost
           DYNAMODB_PORT: 8000
+          NODE_OPTIONS: --experimental-vm-modules

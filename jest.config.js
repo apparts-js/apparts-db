@@ -6,6 +6,7 @@ module.exports = {
   watchPathIgnorePatterns: ["/\\.#.*", "/.*~", "/#.*#"],
 
   testEnvironment: "node",
+  setupFiles: ["<rootDir>/jest.setup.js"],
   transform: {
     //    "^.+\\.tsx?$": "ts-jest",
     "^.+\\.[tj]s$": "ts-jest",
