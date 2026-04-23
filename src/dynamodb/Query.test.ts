@@ -222,8 +222,11 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
       "x1",
       "x3",
     ]);
+    // DynamoDB NOT (attr IN (...)) matches rows where the attribute is
+    // absent too - absent attrs are not in any list, so NOT IN is true.
     expect(await ids(p({ tag: { op: "notin", val: ["a", "c"] } }))).toEqual([
       "x2",
+      "x4",
     ]);
   });
 

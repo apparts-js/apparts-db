@@ -386,8 +386,15 @@ class Query extends GenericQuery {
     const input: ScanCommandInput = { TableName: this._table };
     if (filter.kind === "expr") {
       input.FilterExpression = filter.expr;
-      input.ExpressionAttributeNames = filter.attrNames;
-      input.ExpressionAttributeValues = filter.attrValues;
+      if (Object.keys(filter.attrNames).length > 0) {
+        input.ExpressionAttributeNames = filter.attrNames;
+      }
+      // DynamoDB rejects ExpressionAttributeValues = {}; only include it
+      // when the expression actually uses a value placeholder - exists /
+      // null (attribute_not_exists) filters don't.
+      if (Object.keys(filter.attrValues).length > 0) {
+        input.ExpressionAttributeValues = filter.attrValues;
+      }
     }
     if (limit) {
       input.Limit = limit;
