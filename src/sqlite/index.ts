@@ -11,6 +11,8 @@ export const connectSqlite = async (c: SqliteConfig): Promise<DBS> => {
   if (c.fileMustExist !== undefined) opts.fileMustExist = c.fileMustExist;
   if (c.timeout !== undefined) opts.timeout = c.timeout;
   const db = new Database(c.filename, opts);
+  db.pragma("case_sensitive_like = 1");
+  db.pragma("foreign_keys = ON");
   return new DBS(db, c);
 };
 

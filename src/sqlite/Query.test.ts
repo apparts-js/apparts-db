@@ -271,7 +271,7 @@ runOrSkip("SQLite Query JSON operators", () => {
         },
       })
       .toArray<{ id: number }>();
-    expect(rows.map((r) => r.id).sort()).toEqual([2]);
+    expect(rows.map((r) => r.id).sort()).toEqual([2, 3]);
   });
 
   test("oftype matches values by JSON type", async () => {
