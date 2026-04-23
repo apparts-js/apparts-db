@@ -205,12 +205,13 @@ runOrSkip("DynamoDB Transaction", () => {
     // The writes are still buffered, so a retry with a smaller batch is
     // possible for callers that want to split the work.
     expect(tx._writes.length).toBe(101);
-    // None of the items landed server-side.
-    const rows = await dbs
+    // None of the items landed server-side. Spot-check a few ids instead of
+    // requesting all 101 (BatchGetItem caps at 100 keys per request).
+    const sample = await dbs
       .collection(TEST_TABLE)
-      .findByIds({ id: items.map((i) => i.id) })
+      .findByIds({ id: ["big-0", "big-50", "big-100"] })
       .toArray();
-    expect(rows).toEqual([]);
+    expect(sample).toEqual([]);
   });
 
   test("rollback after a successful commit logs a warning and does not throw", async () => {
