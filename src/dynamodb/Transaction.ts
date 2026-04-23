@@ -50,9 +50,13 @@ class Transaction extends Queriable implements GenericTransaction {
 
   async commit(): Promise<void> {
     if (this._finished) return;
-    this._finished = true;
-    if (this._writes.length === 0) return;
+    if (this._writes.length === 0) {
+      this._finished = true;
+      return;
+    }
     if (this._writes.length > 100) {
+      // Validate BEFORE marking the transaction finished so a caller that
+      // catches this error can split the work into smaller batches.
       throw new NotSupportedByDBEngine(
         `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`
       );
@@ -61,13 +65,33 @@ class Transaction extends Queriable implements GenericTransaction {
       await this._client.send(
         new TransactWriteCommand({ TransactItems: this._writes })
       );
+      this._finished = true;
     } catch (e) {
+      // Do not set _finished here - the server rejected this attempt, so a
+      // subsequent rollback() by the DBS.transaction wrapper needs to be
+      // allowed to clear the queue.
       this._log("Error in commit:", "TransactWriteItems", {}, e);
       throw e;
     }
   }
 
   async rollback(): Promise<void> {
+    if (this._finished) {
+      // DynamoDB transactions commit atomically on the server; a post-commit
+      // rollback cannot undo anything. Log so the caller does not silently
+      // believe an already-committed transaction was rolled back, but do not
+      // throw - the DBS.transaction wrapper calls rollback in its catch and
+      // an error here would mask the original exception.
+      this._log(
+        "Warning in rollback:",
+        "TransactWriteItems",
+        {},
+        new Error(
+          "Transaction.rollback: called after the transaction was already committed or rolled back; the server-side state cannot be undone."
+        )
+      );
+      return;
+    }
     this._finished = true;
     this._writes.length = 0;
   }
