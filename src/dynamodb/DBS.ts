@@ -50,8 +50,9 @@ class DBS extends Queriable implements GenericDBS {
   }
 
   async shutdown(): Promise<void> {
+    // DynamoDBDocumentClient wraps DynamoDBClient; destroying the document
+    // client disposes the underlying raw client too.
     this._client.destroy();
-    this._raw.destroy();
   }
 }
 

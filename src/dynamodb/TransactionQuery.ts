@@ -1,6 +1,11 @@
 import { TransactWriteCommandInput } from "@aws-sdk/lib-dynamodb";
 
 import { Id, NotSupportedByDBEngine, Order, Params, Result } from "../generic";
+import {
+  isSinglePrimaryKeyLookup,
+  namePlaceholder,
+  valuePlaceholder,
+} from "./filterHelpers";
 import Query from "./Query";
 
 export type TransactItem = NonNullable<
@@ -17,35 +22,6 @@ const REJECT_READ = () =>
   new NotSupportedByDBEngine(
     "Reads inside a DynamoDB transaction are not supported - the buffered writes are not visible to Scan/Get until commit(). Commit the transaction and read via the outer DBS."
   );
-
-const isSinglePrimaryKeyLookup = (
-  params: Params
-): { hit: boolean; key?: string | number } => {
-  const keys = Object.keys(params);
-  if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
-  const v = params[PK];
-  if (v === null) return { hit: false };
-  if (typeof v === "object") return { hit: false };
-  return { hit: true, key: v as string | number };
-};
-
-const namePlaceholder = (
-  attr: string,
-  attrNames: Record<string, string>
-): string => {
-  const key = `#n${Object.keys(attrNames).length}`;
-  attrNames[key] = attr;
-  return key;
-};
-
-const valuePlaceholder = (
-  value: unknown,
-  attrValues: Record<string, unknown>
-): string => {
-  const key = `:v${Object.keys(attrValues).length}`;
-  attrValues[key] = value;
-  return key;
-};
 
 class TransactionQuery extends Query {
   _writes: TransactItem[];

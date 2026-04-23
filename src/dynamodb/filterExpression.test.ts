@@ -19,13 +19,13 @@ describe("buildFilterExpression", () => {
     expect(r.attrValues).toEqual({ ":v0": "x" });
   });
 
-  test("null shorthand renders attribute_not_exists and allocates no value", () => {
+  test("null shorthand renders (attribute_not_exists OR = null) to match absent and NULL-typed attributes", () => {
     const r = buildFilterExpression(p({ foo: null }));
     expect(r.kind).toBe("expr");
     if (r.kind !== "expr") return;
-    expect(r.expr).toBe("attribute_not_exists(#n0)");
+    expect(r.expr).toBe("(attribute_not_exists(#n0) OR #n0 = :v0)");
     expect(r.attrNames).toEqual({ "#n0": "foo" });
-    expect(r.attrValues).toEqual({});
+    expect(r.attrValues).toEqual({ ":v0": null });
   });
 
   test("bare array on non-PK renders IN with placeholders", () => {

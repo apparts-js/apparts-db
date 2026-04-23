@@ -20,6 +20,11 @@ import {
   Result,
 } from "../generic";
 import { DynamoConfig } from "./Config";
+import {
+  isSinglePrimaryKeyLookup,
+  namePlaceholder,
+  valuePlaceholder,
+} from "./filterHelpers";
 import { LogFunc } from "./types";
 
 export const isConditionalCheckFailed = (e: unknown): boolean =>
@@ -51,24 +56,6 @@ type OperatorResult =
   | { kind: "always_true" };
 
 const PK = "id";
-
-const namePlaceholder = (
-  attr: string,
-  attrNames: Record<string, string>
-): string => {
-  const key = `#n${Object.keys(attrNames).length}`;
-  attrNames[key] = attr;
-  return key;
-};
-
-const valuePlaceholder = (
-  value: unknown,
-  attrValues: Record<string, unknown>
-): string => {
-  const key = `:v${Object.keys(attrValues).length}`;
-  attrValues[key] = value;
-  return key;
-};
 
 const buildOperator = (
   attr: string,
@@ -176,7 +163,9 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
     const val = params[key];
     if (val === null) {
       const n = namePlaceholder(key, attrNames);
-      clauses.push(`attribute_not_exists(${n})`);
+      // Match both "attribute absent" and "attribute stored as DynamoDB NULL".
+      const v = valuePlaceholder(null, attrValues);
+      clauses.push(`(attribute_not_exists(${n}) OR ${n} = ${v})`);
       continue;
     }
     if (typeof val !== "object") {
@@ -207,17 +196,6 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
     attrNames,
     attrValues,
   };
-};
-
-const isSinglePrimaryKeyLookup = (
-  params: Params
-): { hit: boolean; key?: string | number } => {
-  const keys = Object.keys(params);
-  if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
-  const v = params[PK];
-  if (v === null) return { hit: false };
-  if (typeof v === "object") return { hit: false };
-  return { hit: true, key: v as string | number };
 };
 
 const extractPrimaryKeyList = (
