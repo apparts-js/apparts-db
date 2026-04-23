@@ -4,7 +4,7 @@ export type Filter =
       val: Filter[];
     }
   | {
-      op: "in";
+      op: "in" | "notin";
       val: (string | number | boolean | null)[];
     }
   | {
