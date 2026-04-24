@@ -16,7 +16,8 @@
     "noImplicitThis": false,
     "strictNullChecks": true,
     "strict": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["vitest/globals", "node"]
   },
   "extends": "@tsconfig/node20/tsconfig.json",
   "include": ["src"]

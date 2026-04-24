@@ -94,6 +94,11 @@
           "type": "qualitative"
         },
         {
+          "id": "review-comments-resolved",
+          "text": "After fixing review comments, each one is marked as resolved (or replied to with a ✅) so the reviewer knows it was addressed",
+          "type": "qualitative"
+        },
+        {
           "id": "summary-comment-posted",
           "text": "A summary comment listing all changes made is posted to the PR after promotion",
           "type": "qualitative"

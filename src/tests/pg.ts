@@ -1,6 +1,9 @@
-const { Client } = require("pg");
-const { connect } = require("../");
-const _dbConfig = require("@apparts/config").get("db-test-config");
+import { Client } from "pg";
+import { connect } from "..";
+import config from "@apparts/config";
+import { GenericDBS } from "../generic";
+
+const _dbConfig = config.get("db-test-config");
 const dbConfig = {
   ..._dbConfig,
   postgresql: {
@@ -9,12 +12,14 @@ const dbConfig = {
   },
 };
 
-const createOrDropDatabase = async (action, db_config, dbName) => {
+const createOrDropDatabase = async (
+  action: "CREATE" | "DROP",
+  db_config: Record<string, unknown>,
+  dbName: string
+) => {
   const config = { ...db_config };
   config.database = "postgres";
   const client = new Client(config);
-  //disconnect client when all queries are finished
-  //  client.on('drain', client.end.bind(client));
   client.on("error", async (err) => {
     console.log("COULD NOT " + action + " DATABASE " + dbName + ": " + err);
     await client.end.bind(client);
@@ -33,14 +38,19 @@ const createOrDropDatabase = async (action, db_config, dbName) => {
   await client.end();
 };
 
-module.exports = ({ testName }) => {
+export default ({ testName }: { testName: string }) => {
   const dbName = dbConfig.postgresql.db + "_" + testName;
 
   beforeAll(async () => {
     try {
       await createOrDropDatabase("DROP", dbConfig.postgresql, dbName);
-    } catch (e) {
-      if (e.code !== "3D000") {
+    } catch (e: unknown) {
+      if (
+        typeof e === "object" &&
+        e !== null &&
+        "code" in e &&
+        (e as { code: string }).code !== "3D000"
+      ) {
         console.log(e);
       }
     }
@@ -53,9 +63,9 @@ module.exports = ({ testName }) => {
   }, 60000);
 
   afterAll(async () => {
-    // avoid jest open handle error
+    // 500ms settle to avoid open-handle warnings seen with supertest
     // https://github.com/visionmedia/supertest/issues/520#issuecomment-469044925
-    await new Promise((resolve) => setTimeout(() => resolve(), 500));
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 500));
   }, 60000);
 
   return {
@@ -67,7 +77,7 @@ module.exports = ({ testName }) => {
         db: dbName,
       },
     },
-    setupDbs: async (config) => {
+    setupDbs: async (config?: Record<string, unknown>) => {
       return await connect({
         ...dbConfig,
         postgresql: {
@@ -78,7 +88,7 @@ module.exports = ({ testName }) => {
       });
     },
 
-    teardownDbs: async (dbs) => {
+    teardownDbs: async (dbs: GenericDBS) => {
       await dbs.shutdown();
     },
   };
