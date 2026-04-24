@@ -57,7 +57,7 @@ runOrSkip("SQLite connectivity", () => {
     }
   });
 
-  test.skip("readonly config rejects writes", async () => {
+  test("readonly config rejects writes", async () => {
     const rwDbs = await connectSqlite({ filename: dbPath });
     await rwDbs.raw(
       "CREATE TABLE IF NOT EXISTS ro_items (id INTEGER PRIMARY KEY)"
