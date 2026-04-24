@@ -73,6 +73,24 @@ Also note any `dependencies` in the output — if they list unmerged issue numbe
 
 ---
 
+## Keeping the branch up to date
+
+Whenever you work on an existing branch (states B, C, D, F, G), sync it with its base before doing anything else. A stale branch causes merge conflicts and CI confusion later.
+
+```bash
+git fetch origin
+BASE=$(gh pr view <pr-number> --json baseRefName -q .baseRefName 2>/dev/null || echo "main")
+git rebase origin/$BASE
+```
+
+If the rebase hits conflicts:
+1. Resolve each conflict file (preserve intent from both sides — don't discard either side's real logic).
+2. `git add <resolved files>`
+3. `git rebase --continue`
+4. `git push --force-with-lease`
+
+---
+
 ## State A — Fresh issue: plan, implement, PR
 
 ### A1 — Write subtasks into the issue
@@ -147,7 +165,7 @@ For each subtask:
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/check_subtask.py <number> "<exact subtask text>"
 ```
-3. Stage specific files (not `git add .` — avoid accidentally staging secrets):
+3. Stage specific files (not `git add .` — avoid accidentally staging secrets), commit, and push immediately. Pushing after every commit protects the work if the session ends unexpectedly:
 ```bash
 git add <specific files>
 git commit -m "feat: <what was done> (#<number>)"
@@ -210,7 +228,31 @@ python ${CLAUDE_SKILL_DIR}/scripts/post_review_comments.py \
 
 Each finding with a `**File:** path, line N` reference is posted as an inline comment on that diff line. Findings without a diff anchor are collected into a single general PR comment. Check off "Post test-coverage and code-review findings to PR (checkpoint)" in the issue.
 
-**Step 4 — Fix every issue found** (each fix = its own commit). Never mark the next subtask done if tests are failing. Then check off "Fix issues found in audit" in the issue.
+**Step 4 — Create a fix-tasks checklist, then fix every issue.**
+
+Build a task list on the PR from the findings so progress is visible and resumable across sessions. Each distinct issue becomes one item:
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr_number> create \
+  --label "Audit Fixes" \
+  --tasks "Fix <issue 1 description>" "Fix <issue 2 description>" ...
+```
+
+For each issue (each fix = its own commit, pushed immediately):
+1. Make the fix.
+2. Run tests — never commit if tests are failing.
+3. Commit and **push immediately** (pushing now protects the work if the session ends):
+```bash
+git add <specific files>
+git commit -m "fix: <what was fixed>"
+git push
+```
+4. Check the item off the task list:
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr_number> check --task "<exact item text>"
+```
+
+Then check off "Fix issues found in audit" in the issue.
 
 ### A5 — Finalize PR body and promote to ready
 
@@ -251,13 +293,15 @@ python ${CLAUDE_SKILL_DIR}/scripts/check_subtask.py <number> "CI passes and PR i
 
 ## State B — Resume in-progress work
 
-A branch or subtask checkboxes exist, but no PR yet. Check out the branch, read which subtasks remain, and continue from where work left off.
+A branch or subtask checkboxes exist, but no PR yet. Check out the branch, sync with base, read which subtasks remain, and continue from where work left off.
 
 ```bash
 git fetch origin
 git checkout <branch-name> 2>/dev/null || git checkout --track origin/<branch-name>
 git pull
 ```
+
+If a PR exists, sync with its base branch before doing any work (see "Keeping the branch up to date" above).
 
 Run existing tests first to confirm a clean baseline. Then complete remaining subtasks following the same loop as A3.
 
@@ -275,8 +319,35 @@ Skill("resolve-pr-conflicts", args=str(pr_number))
 
 ## State D — Failing CI
 
+The CI is red. Fix it, keeping the work visible on the PR throughout.
+
+**Step 1 — Sync with base.** A drifted branch can be the root cause of CI failures; syncing first may resolve them without further work:
+
+```bash
+git fetch origin
+gh pr checkout <pr-number>
+BASE=$(gh pr view <pr-number> --json baseRefName -q .baseRefName)
+git rebase origin/$BASE
+# If conflicts: resolve, git rebase --continue, git push --force-with-lease
+```
+
+**Step 2 — Announce.** Post a comment so the work is visible to anyone watching the PR:
+
+```bash
+gh pr comment <pr-number> --body "Picking up CI failures — investigating and fixing now."
+```
+
+**Step 3 — Fix CI** by delegating to the CI-fixer skill:
+
 ```
 Skill("fix-pr-ci", args=str(pr_number))
+```
+
+**Step 4 — Confirm and summarize.** After the skill completes, verify CI is green, then post a closing comment:
+
+```bash
+gh pr checks <pr-number>
+gh pr comment <pr-number> --body "CI is now passing. All checks are green."
 ```
 
 ---
@@ -304,20 +375,69 @@ gh pr checks <pr-number> --watch
 
 ## State C — Draft PR with review comments: address and promote
 
-The PR has unresolved review comments. Address every one, then convert to ready.
+### C1 — Sync with base and read open comments
 
+Start by syncing the branch so you're not fixing review issues on top of a stale base:
+
+```bash
+git fetch origin
+gh pr checkout <pr-number> && git pull
+BASE=$(gh pr view <pr-number> --json baseRefName -q .baseRefName)
+git rebase origin/$BASE
+# If conflicts: resolve, git rebase --continue, git push --force-with-lease
+```
+
+Read the PR to understand what needs addressing:
 ```bash
 gh pr view <pr-number> --json number,title,body,isDraft,url
 gh pr view <pr-number> --comments
-gh pr checkout <pr-number> && git pull
 ```
 
-For each comment:
-- **Code change requested**: make the change, run tests, commit: `fix: address review comment – <description>`
-- **Question / clarification**: reply on GitHub: `gh pr comment <pr-number> --body "Addressed in <sha>: <explanation>"`
-- **Outdated / already resolved**: note it, no action needed
+### C2 — Set up (or resume) a fix-tasks checklist
 
-After pushing all changes:
+A resumable checklist on the PR lets future sessions pick up exactly where this one left off. First, check if one already exists:
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr-number> read
+```
+
+- **If tasks are returned** (a checklist already exists): those unchecked items are what remains. Skip straight to C3.
+- **If the list is empty** (no checklist yet): build a task list from the open review comments — each distinct code change or question to address becomes one item — and create the checklist:
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr-number> create \
+  --label "Review Fixes" \
+  --tasks "Fix <first thing>" "Fix <second thing>" ...
+```
+
+### C3 — Fix each item, pushing after every commit
+
+For each unchecked item in the task list:
+
+1. Make the code change.
+2. Run tests — never commit if tests are failing.
+3. Commit and **push immediately** (don't wait until all fixes are done — pushing now protects each fix if the session ends):
+```bash
+git add <specific files>
+git commit -m "fix: address review comment – <description>"
+git push
+```
+4. Check the item off the task list:
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr-number> check --task "<exact item text>"
+```
+
+For a question / clarification that needs no code change: reply on GitHub, then check off the task:
+```bash
+gh pr comment <pr-number> --body "Addressed: <explanation>"
+python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr-number> check --task "<exact item text>"
+```
+
+For an item that is outdated or already resolved: note it, check off the task, no code change needed.
+
+### C4 — Promote and summarise
+
+After all tasks are checked off:
 ```bash
 gh pr ready <pr-number>
 gh pr comment <pr-number> --body "All review comments addressed. Changes made:
@@ -328,14 +448,18 @@ gh pr comment <pr-number> --body "All review comments addressed. Changes made:
 
 ## General principles
 
-**Commit small and often.** Small commits protect work if a session ends unexpectedly and make reviews easier. Stage specific files rather than `git add .`.
+**Commit small and often, and push after every commit.** Small commits protect work if a session ends unexpectedly and make reviews easier. Pushing immediately after each commit means no commit is ever lost to a session limit. Stage specific files rather than `git add .`.
 
 **Tests must pass before any gate advances.** Never check off a subtask, promote a draft PR, or call CI fixed if tests are red.
 
 **The issue body is the source of truth.** Subtask checkboxes show progress to humans and future sessions. Keep them accurate.
+
+**The PR fix-tasks comment is the source of truth for in-flight fix work.** When fixing review comments or audit issues, the `<!-- auto-fix-tasks -->` checklist on the PR shows what remains. A future session resuming this work should read that checklist first and continue from the first unchecked item.
 
 **Branch names encode the issue number.** This is how GitHub, PRs, and future sessions find each other.
 
 **PR descriptions are for reviewers.** Write as if the reviewer hasn't seen the issue — enough context to understand what changed and why.
 
 **Stacked PRs target their dependency, not main.** GitHub auto-retargets to main once the dependency merges. Always note the stack in the PR body.
+
+**Keep branches fresh.** Before doing any work on an existing branch, sync it with its base (see "Keeping the branch up to date"). A drifted branch is a source of unexpected CI failures and merge conflicts.
