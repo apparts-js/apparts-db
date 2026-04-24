@@ -5,11 +5,13 @@ Use this as a checklist when auditing. For each item, read the current source to
 ## Query.ts — Filter Operators
 
 Every operator handled in the filter dispatch should have tests covering:
+
 - Basic happy path (filter matches rows, filter matches nothing)
 - Edge input for the value type (empty string, zero, empty array where applicable)
 - Combined with ordering and pagination (doesn't need exhaustive combinations, just one sanity check)
 
 Operators to verify coverage for:
+
 - Equality (default, no `op` key)
 - `in` — array of values
 - `notin` — array of values
@@ -21,16 +23,18 @@ Operators to verify coverage for:
 - `oftype` — JSON path type check
 - `and` — combine multiple conditions on one field
 
-For each operator, also check: is there a test for the *error case* when an invalid value is passed?
+For each operator, also check: is there a test for the _error case_ when an invalid value is passed?
 
 ## Query.ts — Core Methods
 
 Each method should have:
+
 - At least one happy-path integration test
 - A test for the empty-result case (no rows match)
 - A test for the error/rejection path (can be mock-based)
 
 Methods to check:
+
 - `find()` with filters, ordering, limit, offset
 - `findById()` with single value and array (`in` operator)
 - `findByIds()`
@@ -64,6 +68,7 @@ Methods to check:
 ## Error Logging
 
 The mock-based logging suite should cover each operation that has logging:
+
 - Each method (`find`, `insert`, `updateOne`, `update`, `remove`, `drop`, `raw`)
 - `logs: "errors"` config with `logParams: true` (params included in log)
 - `logs: "errors"` config with `logParams: false` (params omitted)
@@ -85,6 +90,7 @@ The mock-based logging suite should cover each operation that has logging:
 ## PostgreSQL Error Code Handling
 
 The library surfaces pg error codes to callers. Verify that tests exist for:
+
 - `23505` — unique constraint violation (insert duplicate)
 - `23503` — foreign key violation
 - `23514` — check constraint violation

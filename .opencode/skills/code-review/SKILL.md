@@ -49,9 +49,11 @@ Your job is to give a thorough, actionable code review tailored to this codebase
 ```
 
 ## Actionable findings
+
 <only present if there are findings that map to specific lines>
 
 ### <short title>
+
 - **file:** `path/to/file.ts`
 - **line:** [N]
 - **severity:** must-fix | should-fix | note

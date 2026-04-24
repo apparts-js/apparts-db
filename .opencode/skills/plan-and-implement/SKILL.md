@@ -10,6 +10,7 @@ argument-hint: <issue-number>
 You are invoked to drive an issue labeled `opencode` to completion.
 
 ## Inputs
+
 - `$ARGUMENTS` contains the issue number.
 
 ## Setup
@@ -50,6 +51,7 @@ Update the issue body with `update_issue`.
 ## Create PR
 
 If no branch/PR exists:
+
 ```bash
 git fetch origin
 git checkout main && git pull
@@ -58,6 +60,7 @@ git push -u origin ${ARGUMENTS}-<short-slug>
 ```
 
 Create a draft PR:
+
 ```mcp
 create_pull_request(
   title="<concise title>",
@@ -100,16 +103,19 @@ Before starting any work on an existing branch, keep it up to date with its base
 ## Implement
 
 Find the open PR:
+
 ```mcp
 list_pull_requests(head="${OWNER}:${ARGUMENTS}-*", state="open")
 ```
 
 Record `pr_number`. **Before starting work**, remove the `complete` label:
+
 ```mcp
 remove_labels_from_pr(pr_number=<pr_number>, labels=["complete"])
 ```
 
 For each unchecked subtask up to "Fix issues found in audit":
+
 1. Do the work (TDD: stubs + failing tests → implement → refactor).
 2. Run tests locally.
 3. Commit and push:
@@ -154,6 +160,7 @@ Before promoting the PR, run the same audits that `review-pr` runs and fix any `
 ## Finalize
 
 When all subtasks are checked and the self-check is clean:
+
 1. Merge base branch one final time (same steps as above) to ensure the PR is up to date.
 2. Update the PR body with a reviewer summary using `update_pull_request`.
 3. Add the `complete` label to trigger the CI gate and automatic review:
@@ -163,6 +170,7 @@ When all subtasks are checked and the self-check is clean:
    **Leave the PR as draft.** The `review-pr` skill will promote it to ready only if the automatic audits pass cleanly.
 
 ## Principles
+
 - Push every commit. Each push is a checkpoint.
 - Never check off a subtask if tests are failing.
 - If interrupted, re-running this skill on the same issue will resume from the first unchecked subtask.

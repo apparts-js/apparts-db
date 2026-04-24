@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number to review'
+        description: "PR number to review"
         required: true
       comment_id:
-        description: 'Triggering comment ID'
+        description: "Triggering comment ID"
         required: true
 
 jobs:

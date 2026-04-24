@@ -24,6 +24,7 @@ from the phuhl/contribution-guidelines repository.
 ## When to Use
 
 Invoke this skill when the user asks you to:
+
 - Review or check code for style, quality, or convention compliance.
 - Audit documentation (README, ARCHITECTURE, inline comments, etc.).
 - Check a pull request or changeset for cleanliness and best practices.
@@ -33,6 +34,7 @@ Invoke this skill when the user asks you to:
 
 **Code formatting and basic style are assumed to be handled by tooling.**
 Prettier, ESLint, and the TypeScript compiler already enforce:
+
 - Spacing, indentation, and line breaks
 - camelCase / SCREAMING_SNAKE_CASE naming
 - `const`/`let` over `var`
@@ -46,6 +48,7 @@ conventions below.
 ## Workflow
 
 1. **Determine scope from `$ARGUMENTS`.**
+
    - If `$ARGUMENTS` looks like a PR number (digits only), fetch the PR
      metadata and derive the diff range:
      ```bash
@@ -64,12 +67,14 @@ conventions below.
 2. **Load the relevant reference document(s).** Based on what is being
    reviewed, read the appropriate reference file(s) from the skill's
    `references/` directory:
+
    - Code review → `references/coding-conventions.md`
    - Documentation review → `references/documentation-conventions.md`
    - Contribution / PR review → `references/contribution-conventions.md`
 
 3. **Perform the review.** Walk through the item systematically against
    the loaded conventions. Look for:
+
    - Violations of explicit rules that tooling does not catch (e.g.,
      unclear naming, poor code structure, missing issue references).
    - Opportunities to apply general principles (e.g., simplicity,
@@ -79,8 +84,9 @@ conventions below.
 
 4. **Format your findings.** Present the review results in this structure:
 
-   ```markdown
+   ````markdown
    ## Review Summary
+
    - **Item reviewed:** [file name / commit hash / PR link]
    - **Conventions checked:** [list of reference docs used]
    - **Overall verdict:** [Pass / Needs minor changes / Needs significant changes]
@@ -88,24 +94,30 @@ conventions below.
    ## Findings
 
    ### [Category, e.g., Code Structure]
+
    - **Issue:** [description]
    - **File:** `path/to/file.ts`, line [N]
    - **Suggestion:** [concrete fix]
    - **Reference:** [specific rule from the conventions]
 
    ### [Category, e.g., Documentation Style]
+
    ...
 
    ## Positive Observations
+
    - [Anything done well, to keep feedback balanced and actionable]
 
    ## Recommendations
+
    - [Prioritized list of changes to make]
 
    ## Actionable findings
+
    <only present if there are findings that map to specific lines>
 
    ### <short title>
+
    - **file:** `path/to/file.ts`
    - **line:** [N]
    - **severity:** must-fix | should-fix | note
@@ -114,11 +126,15 @@ conventions below.
      ```typescript
      <corrected code or text>
      ```
+   ````
+
+   ```
+
    ```
 
 5. **Be specific and constructive.** Always cite the exact convention
    that supports your feedback. Provide concrete code or text snippets
-   showing how to fix the issue. Explain *why* the convention matters
+   showing how to fix the issue. Explain _why_ the convention matters
    when it is not self-evident.
 
 6. **Acknowledge trade-offs.** If a guideline is violated for a good

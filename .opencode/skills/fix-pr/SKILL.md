@@ -10,6 +10,7 @@ argument-hint: <pr-number> [ci-failing|review-comments]
 You are invoked to fix a PR. The context is provided in `$ARGUMENTS`.
 
 ## Inputs
+
 Parse `$ARGUMENTS` as: `<pr-number> <context>` where context is `ci-failing` or `review-comments`.
 
 ## Setup
@@ -43,6 +44,7 @@ Parse `$ARGUMENTS` as: `<pr-number> <context>` where context is `ci-failing` or 
 ## Fix CI failures
 
 If context is `ci-failing`:
+
 1. Discover the test runner:
    ```bash
    cat package.json 2>/dev/null | grep -A10 '"scripts"'
@@ -65,6 +67,7 @@ If context is `ci-failing`:
 ## Address review comments
 
 If context is `review-comments`:
+
 1. Fetch comments:
    ```mcp
    list_pull_request_comments(pr_number=<pr-number>)

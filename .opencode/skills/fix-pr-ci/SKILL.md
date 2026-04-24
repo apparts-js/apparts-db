@@ -25,7 +25,7 @@ For each failing check, fetch the log:
 gh run view <run-id> --log-failed
 ```
 
-Read the errors carefully. Understand *what* failed and *why* before touching any code.
+Read the errors carefully. Understand _what_ failed and _why_ before touching any code.
 
 ## Step 2 — Check out the branch
 

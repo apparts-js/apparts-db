@@ -13,7 +13,7 @@ That does not mean, documentation does not matter. It benefits quickly looking u
   1. in code
   2. in person
   3. in documentation
-  Preferably, all of them, at least two.
+     Preferably, all of them, at least two.
 - Add your documentation to the right place (single source of truth). This usually is the README (or additional files, linked to in a wiki-style) in the repository.
 - Keep it short.
 - Keep it specific.
@@ -38,7 +38,7 @@ That does not mean, documentation does not matter. It benefits quickly looking u
   - Bird's eye view, coarse-grained modules and their relations.
   - Should answer: Where is the thing that does X.
   - Name important files (prefer searchable names over links as links go stale).
-  - Architectural principles (especially, if it is not apparent from the code, e.g. an intentional *lack* of something).
+  - Architectural principles (especially, if it is not apparent from the code, e.g. an intentional _lack_ of something).
   - Boundaries between layers and systems.
   - Don't describe how the module works (if necessary to document, separate document or inline comments).
 

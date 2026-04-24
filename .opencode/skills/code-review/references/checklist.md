@@ -10,6 +10,7 @@ Apply these checks to every review. They're derived from recurring patterns and 
 ## Operator dispatch consistency
 
 When a new filter operator is added to the dispatch in `Query.ts`:
+
 - It must handle both the happy path and invalid/missing input (what happens if `val` is undefined, or `path` is empty?)
 - It must be covered by a test in `Query.test.ts` — both a matching case and a non-matching case
 - The SQL it generates should be verified against what PostgreSQL actually accepts, not just assumed to be correct
@@ -18,6 +19,7 @@ When a new filter operator is added to the dispatch in `Query.ts`:
 ## Error logging
 
 This codebase has explicit error logging in every method that touches the database. When adding a new method or wrapping an existing one:
+
 - The `_log()` call must include the method name as the first argument (e.g., `"Error in myMethod:"`)
 - The query string and params must be passed correctly — `null` for params when there are none, the actual params array otherwise
 - The method must re-throw after logging — errors must propagate to callers
@@ -32,6 +34,7 @@ This codebase has explicit error logging in every method that touches the databa
 ## Configuration awareness
 
 Several behaviours change based on `this._config`:
+
 - `arrayAsJSON` affects how array columns are read and written — any code touching array fields must handle both cases
 - `idsAsBigInt` affects type conversion in `convertType()` — changes to ID handling must account for this flag
 - `logs` and `logParams` affect what gets logged — don't add unconditional `console.log` calls; route everything through `_log()`
@@ -45,6 +48,7 @@ Several behaviours change based on `this._config`:
 ## Test hygiene
 
 When reviewing test additions alongside code changes, apply the patterns from `verify-tests` gotchas:
+
 - `await` before every `.rejects`/`.resolves` assertion
 - `toStrictEqual` when the complete return shape is being asserted
 - New tests should insert their own data rather than relying on rows from earlier tests in the same describe block

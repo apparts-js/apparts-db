@@ -33,6 +33,7 @@ For each file being audited, check:
 - Tests use `toStrictEqual` when exact shape matters, not just `toMatchObject` (which silently allows extra fields)
 
 For a checklist of what each part of the codebase should have tested, read:
+
 - `.opencode/skills/verify-tests/references/coverage-map.md` — what to verify for each method, operator, and config option
 - `.opencode/skills/verify-tests/references/gotchas.md` — recurring patterns that make tests look correct but silently miss bugs
 
@@ -77,9 +78,11 @@ For a checklist of what each part of the codebase should have tested, read:
 ```
 
 ## Actionable findings
+
 <only present if there are findings that map to specific lines>
 
 ### <short title>
+
 - **file:** `path/to/file.ts`
 - **line:** [N]
 - **severity:** must-fix | should-fix | note

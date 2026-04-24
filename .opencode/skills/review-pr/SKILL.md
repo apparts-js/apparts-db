@@ -10,6 +10,7 @@ argument-hint: <pr-number>
 You are invoked because someone commented `/oc code-review` on a PR.
 
 ## Inputs
+
 Parse `$ARGUMENTS` as: `<pr-number>`. The calling workflow may also pass a `<comment-id>`, but the skill no longer uses it directly (the workflow handles the reaction).
 
 ## Setup
@@ -56,6 +57,7 @@ Parse `$ARGUMENTS` as: `<pr-number>`. The calling workflow may also pass a `<com
 - If findings were posted, leave the PR state as-is so the author can fix them.
 
 In **both cases**, request `phuhl` as reviewer so a human is notified:
+
 ```bash
 gh pr edit <pr-number> --add-reviewer phuhl
 ```

@@ -1,10 +1,11 @@
 # Coding Conventions
 
-> Most formatting and style rules are already enforced by **Prettier** and **ESLint** (or the TypeScript compiler). Use of these tools is mandatory. The conventions below focus on what the tooling *cannot* enforce: clarity, structure, and human judgment.
+> Most formatting and style rules are already enforced by **Prettier** and **ESLint** (or the TypeScript compiler). Use of these tools is mandatory. The conventions below focus on what the tooling _cannot_ enforce: clarity, structure, and human judgment.
 
 ## General Principles
 
-- Do *not* try to be fancy or clever: Keep it simple and easy to read.
+- Do _not_ try to be fancy or clever: Keep it simple and easy to read.
+
   > Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.
   > -- Brian Kernighan
 
@@ -33,7 +34,7 @@ if (mySpecialCondition) {
 if (!mySpecialCondition) {
   // Error handling for my special condition failing...
   // Use return or throw to abort rest of logic beeing executed.
-  // All stuff related to my special condition is contained in 
+  // All stuff related to my special condition is contained in
   // one section of code and not split over 10s of lines.
 }
 
@@ -47,7 +48,7 @@ if (!mySpecialCondition) {
 - Use functional definitions.
 
 ```js
-const myConstantFunc = () => 7
+const myConstantFunc = () => 7;
 const mySlightlyMoreComplexFunc = (a, _, b) => {
   return a + b;
 };
