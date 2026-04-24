@@ -10,14 +10,14 @@ const runOrSkip = shouldRun ? describe : describe.skip;
 runOrSkip("SQLite connectivity", () => {
   let dbPath: string;
 
-  beforeAll(() => {
+  beforeEach(() => {
     dbPath = path.join(
       fs.mkdtempSync(path.join(os.tmpdir(), "apparts-db-sqlite-")),
       "connectivity.sqlite"
     );
   });
 
-  afterAll(() => {
+  afterEach(() => {
     try {
       fs.rmSync(path.dirname(dbPath), { recursive: true, force: true });
     } catch {
