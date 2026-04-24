@@ -1,6 +1,6 @@
 ---
 name: plan-and-implement
-description: Plan, subdivide, and implement a GitHub issue end-to-end. Triggered when an issue is labeled 'opencode'. Creates subtasks, opens a branch and draft PR, merges base regularly, handles merge conflicts, implements with TDD, pushes regularly, and marks the PR complete when finished.
+description: Plan, subdivide, and implement a GitHub issue end-to-end. Triggered when an issue is labeled 'opencode'. Creates subtasks, opens a branch and draft PR, merges base regularly, handles merge conflicts, implements with TDD, pushes regularly, self-checks with the same audits used in code review, and marks the PR complete when finished.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 context: fork
 agent: general-purpose
@@ -123,9 +123,37 @@ For each unchecked subtask up to "Fix issues found in audit":
    - Replace `- [ ] <exact text>` with `- [x] <exact text>`.
    - Update with `update_issue(issue_number=$ARGUMENTS, body="...")`.
 
+## Self-check before finalizing
+
+Before promoting the PR, run the same audits that `review-pr` runs and fix any `must-fix` findings inline. This prevents the CI gate from immediately rejecting the PR.
+
+1. Determine the diff range:
+   ```bash
+   BASE=$(git merge-base origin/main HEAD)
+   RANGE="${BASE}..HEAD"
+   ```
+2. Run the three audit skills and capture their outputs:
+   ```
+   Skill("code-review", args=RANGE)
+   Skill("verify-tests", args=RANGE)
+   Skill("code-guidelines-check", args=RANGE)
+   ```
+3. Parse the **Actionable findings** sections for `**severity:** must-fix`.
+4. For each `must-fix` finding:
+   - Apply the provided fix using `Write` or `Edit`.
+   - Run tests locally to confirm the fix does not break anything.
+   - Commit and push:
+     ```bash
+     git add <specific-files>
+     git commit -m "fix: resolve self-check finding – <description> (#${ARGUMENTS})"
+     git push
+     ```
+5. Re-run the three audits. Repeat steps 3–5 until no `must-fix` items remain.
+6. If `should-fix` or `note` items remain that you cannot address quickly, leave them for the human reviewer; do not block finalization on them.
+
 ## Finalize
 
-When all subtasks are checked:
+When all subtasks are checked and the self-check is clean:
 1. Merge base branch one final time (same steps as above) to ensure the PR is up to date.
 2. Update the PR body with a reviewer summary using `update_pull_request`.
 3. Promote the PR to ready:

@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Run code-review and verify-tests audits on a PR, post findings, and if clean set the PR ready for review and request phuhl. Triggered by '/oc code-review'.
+description: Run code-review, verify-tests, and code-guidelines-check audits on a PR, post all findings as review comments, and if clean set the PR ready for review and request phuhl. Triggered by '/oc code-review'.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 context: fork
 agent: general-purpose
@@ -31,14 +31,20 @@ Parse `$ARGUMENTS` as: `<pr-number>`. The calling workflow may also pass a `<com
    ```
    Skill("code-review", args=RANGE)
    ```
-3. Save both outputs to temp files immediately.
+3. Run guidelines check:
+   ```
+   Skill("code-guidelines-check", args=RANGE)
+   ```
+4. Save all three outputs to temp files immediately.
 
 ## Post findings
 
-1. Parse findings for `**File:** path/to/file.ts, line N`.
+1. Parse findings from all three audit outputs. Look for:
+   - `**File:** path/to/file.ts, line N` (legacy format)
+   - `**file:** path/to/file.ts` + `**line:** N` (structured Actionable findings format)
 2. For each finding that maps to a line in the PR diff:
    - Post an inline review comment on the head SHA using `create_pull_request_review_comment` with `side="RIGHT"`.
-3. Collect any non-diff findings into a general PR comment via `add_issue_comment`.
+3. Collect any non-diff findings (including general recommendations and non-line-specific issues) into a general PR comment via `add_issue_comment`.
 
 ## Finalize
 

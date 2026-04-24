@@ -76,4 +76,17 @@ For a checklist of what each part of the codebase should have tested, read:
 \`\`\`
 ```
 
+## Actionable findings
+<only present if there are findings that map to specific lines>
+
+### <short title>
+- **file:** `path/to/file.ts`
+- **line:** [N]
+- **severity:** must-fix | should-fix | note
+- **problem:** <what's wrong and why it matters>
+- **fix:**
+  ```typescript
+  <corrected test code>
+  ```
+
 Omit a section entirely if it has no findings. Every finding must include a ready-to-paste Jest skeleton or fix.

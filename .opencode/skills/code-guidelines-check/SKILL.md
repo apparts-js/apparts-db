@@ -9,6 +9,8 @@ description: >
   if they don't explicitly say "guidelines" or "conventions". Also use
   when the user says "is this good?", "review this", "check my code",
   "does this follow best practices?", or similar.
+  This skill never posts comments to GitHub; it returns a structured
+  report that the caller can act on or pass to review-pr for posting.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 argument-hint: [<commit-range> | <file-path> | <pr-number>]
 ---
@@ -99,37 +101,27 @@ conventions below.
 
    ## Recommendations
    - [Prioritized list of changes to make]
+
+   ## Actionable findings
+   <only present if there are findings that map to specific lines>
+
+   ### <short title>
+   - **file:** `path/to/file.ts`
+   - **line:** [N]
+   - **severity:** must-fix | should-fix | note
+   - **problem:** <what's wrong and why it matters>
+   - **fix:**
+     ```typescript
+     <corrected code or text>
+     ```
    ```
 
-5. **Post findings (when reviewing a PR).**
-   If the review was triggered for a PR:
-   - For each finding that maps to a line in the PR diff, post an inline
-     review comment on the head SHA:
-     ```mcp
-     create_pull_request_review_comment(
-       pr_number=<pr-number>,
-       commit_id=<head-sha>,
-       path="path/to/file.ts",
-       line=<line-number>,
-       side="RIGHT",
-       body="**Issue:** [description]\n\n**Suggestion:** [concrete fix]"
-     )
-     ```
-   - Collect any non-diff findings (e.g., missing tests, documentation
-     issues) into a general PR comment:
-     ```mcp
-     add_issue_comment(
-       issue_number=<pr-number>,
-       body="## General findings\n\n[summary of non-diff issues]"
-     )
-     ```
-
-6. **Be specific and constructive.** Always cite the exact convention
+5. **Be specific and constructive.** Always cite the exact convention
    that supports your feedback. Provide concrete code or text snippets
    showing how to fix the issue. Explain *why* the convention matters
    when it is not self-evident.
 
-7. **Acknowledge trade-offs.** If a guideline is violated for a good
+6. **Acknowledge trade-offs.** If a guideline is violated for a good
    reason (e.g., performance optimization, backward compatibility), note
    it and suggest documenting the rationale in a comment or commit body.
 
@@ -142,5 +134,3 @@ conventions below.
   write better code and documentation, not to scold them.
 - For large reviews, prioritize the most impactful issues first (e.g.,
   correctness and clarity over minor formatting nits).
-- When posting inline comments, use `side="RIGHT"` so the comment
-  appears on the proposed (new) version of the code.
