@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
+import { connectSqlite } from "./index";
+
 const shouldRun = process.env.DB_ENGINE === "sqlite";
 const runOrSkip = shouldRun ? describe : describe.skip;
 
@@ -24,7 +26,6 @@ runOrSkip("SQLite connectivity", () => {
   });
 
   test("opens a file-backed database and executes a trivial query", async () => {
-    const { connectSqlite } = await import("./index");
     const dbs = await connectSqlite({ filename: dbPath });
     try {
       const result = await dbs.raw<{ one: number }>("SELECT 1 AS one");

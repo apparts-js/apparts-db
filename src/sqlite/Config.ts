@@ -5,5 +5,4 @@ export interface SqliteConfig {
   timeout?: number;
   logs?: "errors";
   logParams?: boolean;
-  arrayAsJSON?: boolean;
 }

@@ -113,7 +113,17 @@ class Query extends GenericQuery {
             val.forEach((v) => vals.push(v));
             return `"${key}" IN (` + val.map(() => "?").join(",") + ")";
           }
-          return this._decideOperator(`"${key}"`, val.op, val.val, vals);
+          if (!("op" in val)) {
+            throw new Error(
+              `ERROR, unknown value type for key "${key}". Expected primitive, null, array, or operator object { op, val }.`
+            );
+          }
+          return this._decideOperator(
+            `"${key}"`,
+            (val as { op: string; val: unknown }).op,
+            (val as { op: string; val: unknown }).val,
+            vals
+          );
         })
         .join(" AND ")
     );
@@ -183,33 +193,32 @@ class Query extends GenericQuery {
           return this._decideOperator(cast, nested.op, nested.val, vals);
         }
         vals.push(v.value);
-        return `${path} = ?`;
+        return `${cast} = ?`;
       }
       case "oftype": {
         const v = val as { path: string[]; value: string };
         const mapped = this._mapJsonType(v.value);
-        vals.push(mapped);
-        return `json_type(${key}, '${this._jsonPointer(v.path)}') = ?`;
+        mapped.forEach((m) => vals.push(m));
+        const placeholders = mapped.map(() => "?").join(",");
+        return `json_type(${key}, '${this._jsonPointer(v.path)}') IN (${placeholders})`;
       }
       default:
         throw new Error("ERROR, operator not implemented: " + op);
     }
   }
 
-  _mapJsonType(value: string): string {
+  _mapJsonType(value: string): string[] {
     switch (value) {
       case "string":
-        return "text";
+        return ["text"];
       case "number":
-        return "integer";
+        return ["integer", "real"];
       case "boolean":
-        throw new Error(
-          "ERROR, SQLite's JSON1 does not have a dedicated boolean type; use 'number' (0/1) instead."
-        );
+        return ["true", "false"];
       case "null":
       case "array":
       case "object":
-        return value;
+        return [value];
       default:
         throw new Error(`ERROR, unknown JSON type: ${value}`);
     }
