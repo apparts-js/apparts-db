@@ -1,0 +1,51 @@
+{
+  "skill_name": "code-guidelines-check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this JavaScript function for coding convention compliance. Assume Prettier and ESLint are already configured.
+
+```js
+function processUserData(user) {
+  if (user.isActive) {
+    const profile = loadProfile(user.id);
+    validateProfile(profile);
+    const settings = loadSettings(user.id);
+    validateSettings(settings);
+    if (profile.isComplete && settings.areValid) {
+      sendWelcomeEmail(user.email);
+      logActivity(user.id, 'welcome_sent');
+      updateUserStatus(user.id, 'onboarded');
+    } else {
+      throw new Error('Incomplete profile or invalid settings');
+    }
+  } else {
+    throw new Error('User is not active');
+  }
+}
+```",
+      "expected_output": "The review should focus on structural and clarity issues that tooling cannot catch. It should flag: deeply nested happy-path logic with error handling at the end (should guard-clause inactive users early), mixing unrelated concerns (loading, validating, emailing, logging, updating) without clear grouping, and overly clever/complex flow. It should NOT flag formatting, spacing, camelCase, const vs let, or brace usage since those are handled by Prettier/ESLint.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Review this README snippet for documentation quality:
+
+```
+# MyProject
+
+This is a project that does a lot of things. You should read all of it to understand.
+
+## Installation
+
+First, make sure you have Node.js installed. Then run npm install. After that, you need to configure the environment variables. There are a lot of them. Make sure you don't miss any or the app won't work.
+
+## Usage
+
+Don't run this in production without testing first. It might break things.
+```",
+      "expected_output": "The review should flag: too vague and tutorial-style, not designed for search, relies on documentation for don'ts ('Don't run this in production'), lacks specific do's, no internal links, missing architecture overview for large projects (if applicable).",
+      "files": []
+    }
+  ]
+}
