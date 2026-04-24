@@ -435,9 +435,18 @@ python ${CLAUDE_SKILL_DIR}/scripts/manage_fix_tasks.py <pr-number> check --task 
 
 For an item that is outdated or already resolved: note it, check off the task, no code change needed.
 
-### C4 — Promote and summarise
+### C4 — Mark comments resolved, promote and summarise
 
-After all tasks are checked off:
+After all tasks are checked off, resolve every open review comment so the reviewer knows each point has been addressed:
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/resolve_review_comments.py <pr-number> resolve-all
+```
+
+This uses GitHub's native **Resolve conversation** feature when available, and falls back to a ✅ reply otherwise.
+
+Then promote the PR to ready and post a summary:
+
 ```bash
 gh pr ready <pr-number>
 gh pr comment <pr-number> --body "All review comments addressed. Changes made:
