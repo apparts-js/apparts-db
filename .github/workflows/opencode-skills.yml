@@ -1,0 +1,56 @@
+name: OpenCode Skills
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  verify-skills:
+    runs-on: ubuntu-latest
+    env:
+      OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenCode
+        run: npm install -g opencode-ai
+
+      - name: Verify OpenCode loads only .opencode/skills
+        run: |
+          echo "Loaded skills:"
+          opencode debug skill | grep '"name"'
+
+      - name: Check skill syntax integrity
+        run: |
+          for skill in .opencode/skills/*/SKILL.md; do
+            echo "Checking $(basename $(dirname $skill))"
+            # Ensure no stale env var references remain
+            if grep -q '${SKILL_DIR}' "$skill"; then
+              echo "ERROR: Found stale \${SKILL_DIR} in $skill"
+              exit 1
+            fi
+          done
+          echo "All skills are clean."
+
+  # Example: run an OpenCode skill in CI (non-interactive mode)
+  # Uncomment and adapt the step below to run a specific skill.
+  #
+  # run-skill:
+  #   runs-on: ubuntu-latest
+  #   needs: verify-skills
+  #   env:
+  #     OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
+  #     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install OpenCode
+  #       run: npm install -g opencode-ai
+  #
+  #     - name: Run code-review skill on PR range
+  #       run: |
+  #         # Example: review the last commit
+  #         opencode run "Load the code-review skill and run it on HEAD~1..HEAD"

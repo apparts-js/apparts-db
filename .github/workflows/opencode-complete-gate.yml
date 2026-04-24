@@ -1,0 +1,144 @@
+name: OpenCode — Complete Gate
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to check'
+        required: true
+
+jobs:
+  complete-gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'complete'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      checks: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine PR number and head SHA
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid -q .headRefOid)
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Check mergeability
+        id: mergeable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MERGE_STATE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeable,mergeStateStatus -q '.mergeable + " " + .mergeStateStatus')
+          echo "merge_state=${MERGE_STATE}" >> "$GITHUB_OUTPUT"
+          if echo "$MERGE_STATE" | grep -q 'CONFLICTING\|DIRTY'; then
+            echo "has_conflicts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_conflicts=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove complete label (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
+
+      - name: Install OpenCode (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true'
+        run: npm install -g opencode-ai
+
+      - name: Resolve merge conflicts
+        if: steps.mergeable.outputs.has_conflicts == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          opencode run "Load the resolve-pr-conflicts skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
+
+      - name: Re-add complete label (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "complete"
+
+      - name: Wait for checks to finish
+        if: steps.mergeable.outputs.has_conflicts == 'false'
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+        run: |
+          for i in {1..60}; do
+            INCOMPLETE=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" --jq '[.check_runs[] | select(.status != "completed")] | length')
+            if [ "$INCOMPLETE" -gt 0 ]; then
+              echo "Waiting for ${INCOMPLETE} check(s) to complete..."
+              sleep 10
+            else
+              break
+            fi
+          done
+
+          CONCLUSIONS=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" --jq '.check_runs[] | select(.status == "completed") | .conclusion')
+          if echo "$CONCLUSIONS" | grep -qE 'failure|cancelled|timed_out'; then
+            echo "status=failing" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=passing" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove complete label (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
+
+      - name: Install OpenCode (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
+        run: npm install -g opencode-ai
+
+      - name: Run fix-pr skill (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          opencode run "Load the fix-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }} with context ci-failing"
+
+      - name: Re-add complete label (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "complete"
+
+      - name: Post /oc code-review trigger comment (CI passing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'passing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "/oc code-review"
