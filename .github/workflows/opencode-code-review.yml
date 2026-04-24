@@ -17,11 +17,11 @@ jobs:
     # This workflow is triggered by issue_comment because general PR comments
     # are issue comments in GitHub's event model. We enforce PR-only below.
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      (
-        github.event.issue.pull_request &&
-        contains(github.event.comment.body, '/oc code-review')
-      )
+      (github.event_name == 'workflow_dispatch' && github.actor == 'phuhl') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/oc code-review') &&
+       github.actor == 'phuhl')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -43,7 +43,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install OpenCode
-        run: npm install -g opencode-ai
+        run: npm install -g opencode-ai@1.14.24
 
       - name: Run review-pr skill
         env:

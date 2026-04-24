@@ -23,6 +23,9 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install OpenCode
+        run: npm install -g opencode-ai@1.14.24
+
       - name: Determine PR number and head SHA
         id: meta
         env:
@@ -57,10 +60,6 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
-
-      - name: Install OpenCode (conflicts)
-        if: steps.mergeable.outputs.has_conflicts == 'true'
-        run: npm install -g opencode-ai
 
       - name: Resolve merge conflicts
         if: steps.mergeable.outputs.has_conflicts == 'true'
@@ -114,10 +113,6 @@ jobs:
         run: |
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
 
-      - name: Install OpenCode (CI failing)
-        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
-        run: npm install -g opencode-ai
-
       - name: Run fix-pr skill (CI failing)
         if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing'
         env:
@@ -136,11 +131,11 @@ jobs:
         run: |
           gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "complete"
 
-      - name: Post /oc code-review trigger comment (CI passing)
+      - name: Run review-pr skill (CI passing)
         if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'passing'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
-          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
         run: |
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "/oc code-review"
+          opencode run "Load the review-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }}"

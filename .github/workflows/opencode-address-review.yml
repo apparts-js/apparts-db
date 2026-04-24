@@ -12,8 +12,9 @@ on:
 jobs:
   address-review:
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.review.user.login == 'phuhl' &&
+      (github.event_name == 'workflow_dispatch' && github.actor == 'phuhl') ||
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.user.login == 'phuhl' &&
        (github.event.review.state == 'changes_requested' || github.event.review.state == 'commented'))
     runs-on: ubuntu-latest
     permissions:
@@ -39,7 +40,7 @@ jobs:
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete" || true
 
       - name: Install OpenCode
-        run: npm install -g opencode-ai
+        run: npm install -g opencode-ai@1.14.24
 
       - name: Run fix-pr skill
         env:
