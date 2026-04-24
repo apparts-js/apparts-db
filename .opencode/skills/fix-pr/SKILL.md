@@ -86,9 +86,13 @@ If context is `review-comments`:
    add_issue_comment(
      issue_number=<pr-number>,
       body="All review comments addressed. Changes made:
-- <bullet list>"
-   )
    ```
+
+- <bullet list>"
+  )
+  ```
+
+  ```
 
 ## After fixing
 
