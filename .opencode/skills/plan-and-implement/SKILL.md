@@ -64,7 +64,9 @@ Create a draft PR:
 ```mcp
 create_pull_request(
   title="<concise title>",
-  body="Work in progress — see issue #${ARGUMENTS} for context.\n\nCloses #${ARGUMENTS}",
+  body="Work in progress — see issue #${ARGUMENTS} for context.
+
+Closes #${ARGUMENTS}",
   head="${ARGUMENTS}-<short-slug>",
   base="main",
   draft=true
