@@ -16,7 +16,7 @@ describe("Prints errors with params", () => {
   });
 
   test("Should log raw query failure", async () => {
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+    const logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // nothign
     });
     let error;
@@ -52,7 +52,7 @@ describe("Prints errors without params", () => {
   });
 
   test("Should log raw query failure", async () => {
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+    const logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // nothign
     });
     let error;
