@@ -1,0 +1,233 @@
+name: OpenCode — Complete Gate
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to check"
+        required: true
+
+jobs:
+  complete-gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'complete'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+      checks: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ensure autofix attempt labels exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          for i in 1 2 3; do
+            gh label create "autofix-attempts-$i" --repo "$REPO" --color "d93f0b" --description "Autofix attempt counter" || true
+          done
+          gh label create "autofix-exhausted" --repo "$REPO" --color "b60205" --description "Autofix retries exhausted — manual intervention required" || true
+
+      - name: Install OpenCode
+        run: npm install -g opencode-ai@1.14.24
+
+      - name: Determine PR number and head SHA
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid -q .headRefOid)
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${HEAD_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Count autofix attempts
+        id: attempts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '.labels[].name')
+          COUNT=0
+          for i in 1 2 3; do
+            if echo "$LABELS" | grep -q "^autofix-attempts-$i$"; then
+              COUNT=$i
+            fi
+          done
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -ge 3 ]; then
+            echo "exhausted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exhausted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check mergeability
+        id: mergeable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MERGE_STATE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeable,mergeStateStatus -q '.mergeable + " " + .mergeStateStatus')
+          echo "merge_state=${MERGE_STATE}" >> "$GITHUB_OUTPUT"
+          if echo "$MERGE_STATE" | grep -q 'CONFLICTING\|DIRTY'; then
+            echo "has_conflicts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_conflicts=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove complete label (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
+
+      - name: Resolve merge conflicts
+        if: steps.mergeable.outputs.has_conflicts == 'true' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
+        run: |
+          opencode run "Load the resolve-pr-conflicts skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
+
+      - name: Record autofix attempt (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          COUNT=${{ steps.attempts.outputs.count }}
+          if [ "$COUNT" -gt 0 ]; then
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autofix-attempts-$COUNT" || true
+          fi
+          NEXT=$((COUNT + 1))
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "autofix-attempts-$NEXT"
+
+      - name: Re-add complete label (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "complete"
+
+      - name: Post exhaustion warning (conflicts)
+        if: steps.mergeable.outputs.has_conflicts == 'true' && steps.attempts.outputs.exhausted == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "autofix-exhausted"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "⚠️ Autofix exhausted after 3 attempts (conflict resolution). Manual intervention required."
+
+      - name: Wait for checks to finish
+        if: steps.mergeable.outputs.has_conflicts == 'false'
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+        run: |
+          for i in {1..60}; do
+            INCOMPLETE=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" --jq '[.check_runs[] | select(.status != "completed")] | length')
+            if [ "$INCOMPLETE" -gt 0 ]; then
+              echo "Waiting for ${INCOMPLETE} check(s) to complete..."
+              sleep 10
+            else
+              break
+            fi
+          done
+
+          CONCLUSIONS=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/check-runs" --jq '.check_runs[] | select(.status == "completed") | .conclusion')
+          if echo "$CONCLUSIONS" | grep -qE 'failure|cancelled|timed_out'; then
+            echo "status=failing" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=passing" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove complete label (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "complete"
+
+      - name: Run fix-pr skill (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
+        run: |
+          opencode run "Load the fix-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }} with context ci-failing"
+
+      - name: Record autofix attempt (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          COUNT=${{ steps.attempts.outputs.count }}
+          if [ "$COUNT" -gt 0 ]; then
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autofix-attempts-$COUNT" || true
+          fi
+          NEXT=$((COUNT + 1))
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "autofix-attempts-$NEXT"
+
+      - name: Re-add complete label (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "complete"
+
+      - name: Post exhaustion warning (CI failing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "autofix-exhausted"
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "⚠️ Autofix exhausted after 3 attempts (CI failing). Manual intervention required."
+
+      - name: Run review-pr skill (CI passing)
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'passing'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
+        run: |
+          opencode run "Load the review-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
+
+      - name: Reset autofix attempt labels
+        if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'passing'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          for i in 1 2 3; do
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autofix-attempts-$i" || true
+          done
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autofix-exhausted" || true
