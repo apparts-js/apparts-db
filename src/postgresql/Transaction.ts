@@ -1,5 +1,5 @@
 import Query from "./Query";
-import { PoolClient } from "pg";
+import { PoolClient, QueryResultRow } from "pg";
 import { PGConfig } from "./Config";
 import { Result, GenericTransaction, GenericQuery } from "../generic";
 
@@ -18,9 +18,10 @@ class Transaction extends Queriable implements GenericTransaction {
     this._dbs.query("BEGIN;");
   }
 
-  async raw<T>(query: string, params: any[] = []): Promise<Result<T>> {
+  async raw<T>(query: string, params: unknown[] = []): Promise<Result<T>> {
     try {
-      return await this._dbs.query<T>(query, params);
+      const res = await this._dbs.query<QueryResultRow>(query, params);
+      return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (e) {
       this._log("Error in dbs.raw", query, { params }, e);
       throw e;

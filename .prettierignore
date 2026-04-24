@@ -1,2 +1,4 @@
 build/
 TASKS.md
+.claude/
+coverage/

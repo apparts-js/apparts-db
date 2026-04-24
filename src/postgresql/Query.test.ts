@@ -1,4 +1,6 @@
 import setupTest from "../tests/pg";
+import type { Pool } from "pg";
+import type { PGConfig } from "./Config";
 
 const { setupDbs, teardownDbs } = setupTest({
   testName: "querytest",
@@ -15,7 +17,13 @@ describe("Log on error behavior", () => {
     query = jest.fn().mockImplementation(async () => {
       throw e;
     });
-    dbs = new DBS({} as any, { logs: "errors", logParams: true } as any);
+    dbs = new DBS(
+      {} as unknown as Pool,
+      {
+        logs: "errors",
+        logParams: true,
+      } as unknown as PGConfig
+    );
   });
   afterEach(() => {
     logMock.mockRestore();
@@ -444,7 +452,7 @@ describe("Filters", () => {
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
   });
   it("Should fail to find with of operator, no level deep", async () => {
-    expect(async () => {
+    await expect(async () => {
       await dbs
         .collection("testTable3")
         .find({
