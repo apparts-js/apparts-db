@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
+    "baseUrl": "src",
     "allowJs": true,
-    "alwaysStrict": true,
-    "sourceMap": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
     "noImplicitReturns": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "noImplicitAny": false,
     "noImplicitThis": false,
-    "strictNullChecks": false
+    "strictNullChecks": true,
+    "strict": true,
+    "declaration": true
   },
-  "extends": "@tsconfig/node14/tsconfig.json",
-  "include": ["src/index.ts", "src/**/*.ts"],
-  "exclude": ["**/node_modules", "**/.*/"]
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "include": ["src"]
 }
