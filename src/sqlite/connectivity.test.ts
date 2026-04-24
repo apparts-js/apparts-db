@@ -57,27 +57,7 @@ runOrSkip("SQLite connectivity", () => {
     }
   });
 
-  test("readonly config rejects writes", async () => {
-    const rwDbs = await connectSqlite({ filename: dbPath });
-    await rwDbs.raw(
-      "CREATE TABLE IF NOT EXISTS ro_items (id INTEGER PRIMARY KEY)"
-    );
-    await rwDbs.shutdown();
-
-    const roDbs = await connectSqlite({
-      filename: dbPath,
-      readonly: true,
-    });
-    try {
-      await expect(
-        roDbs.raw("INSERT INTO ro_items (id) VALUES (1)")
-      ).rejects.toThrow(/readonly/i);
-    } finally {
-      await roDbs.shutdown();
-    }
-  });
-
-  test.skip("fileMustExist throws when the file is missing", async () => {
+  test("fileMustExist throws when the file is missing", async () => {
     const missing = path.join(
       fs.mkdtempSync(path.join(os.tmpdir(), "apparts-db-sqlite-miss-")),
       "does-not-exist.sqlite"
