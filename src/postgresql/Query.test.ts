@@ -444,8 +444,10 @@ describe("Filters", () => {
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
   });
   it("Should fail to find with of operator, no level deep", async () => {
-    await expect(
-      dbs
+    // find() throws synchronously on an empty JSON path, so wrap in an async
+    // fn to turn the throw into a rejection that expect(...).rejects can see.
+    await expect(async () => {
+      await dbs
         .collection("testTable3")
         .find({
           object1: {
@@ -456,8 +458,8 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
-    ).rejects.toThrow(
+        .toArray();
+    }).rejects.toThrow(
       "ERROR, JSON path requires at least one path element. You submitted []."
     );
   });
