@@ -93,11 +93,11 @@ class DBS extends Queriable implements GenericDBS {
         return res;
       }),
       ...indexes
-        .filter((i) => i.key)
+        .filter((i): i is typeof i & { key: string[] } => i.key !== undefined)
         .map(
           (i) =>
             `CONSTRAINT "${name}_${i.name}_pkey" PRIMARY KEY (` +
-            (i.key as string[]).map((k) => `"${k}"`).join(",") +
+            i.key.map((k) => `"${k}"`).join(",") +
             ")"
         ),
       ...indexes
@@ -121,7 +121,7 @@ class DBS extends Queriable implements GenericDBS {
     try {
       return this._dbs.query(q);
     } catch (e) {
-      this._log("Error in updateOne:", "", {}, e);
+      this._log("Error in createCollection:", q, [], e);
       throw e;
     }
   }
