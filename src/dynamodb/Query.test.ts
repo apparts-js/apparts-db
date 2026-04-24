@@ -148,9 +148,7 @@ runOrSkip("DynamoDB Query CRUD", () => {
 
   test("remove with >25 ids exercises the 25-item chunking loop", async () => {
     const ids = Array.from({ length: 26 }, (_, i) => `chunk-${i}`);
-    await dbs
-      .collection(TEST_TABLE)
-      .insert(ids.map((id) => ({ id })));
+    await dbs.collection(TEST_TABLE).insert(ids.map((id) => ({ id })));
     const res = await dbs.collection(TEST_TABLE).remove({ id: ids });
     expect(res.rowCount).toBe(26);
     const remaining = await dbs
