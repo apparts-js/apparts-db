@@ -87,4 +87,71 @@ runOrSkip("SQLite Transaction", () => {
     const rows = await dbs.collection("tx_items").find({}).toArray();
     expect(rows.length).toBe(1);
   });
+
+  test("commit after rollback is a no-op", async () => {
+    await expect(
+      dbs.transaction(async (t) => {
+        await t.collection("tx_items").insert([{ id: 1, name: "a" }]);
+        await t.rollback();
+        await t.commit();
+        throw new Error("explicit early exit");
+      })
+    ).rejects.toThrow("explicit early exit");
+    const rows = await dbs.collection("tx_items").find({}).toArray();
+    expect(rows).toEqual([]);
+  });
+
+  test("raw inside a transaction executes parameterised reads", async () => {
+    await dbs.collection("tx_items").insert([{ id: 1, name: "alpha" }]);
+    await dbs.transaction(async (t) => {
+      const res = await t.raw<{ id: number; name: string }>(
+        "SELECT id, name FROM tx_items WHERE id = ?",
+        [1]
+      );
+      expect(res.rows).toEqual([{ id: 1, name: "alpha" }]);
+      expect(res.rowCount).toBe(1);
+    });
+  });
+
+  test("raw inside a transaction executes writes and reports rowCount", async () => {
+    await dbs.collection("tx_items").insert([{ id: 1, name: "a" }]);
+    await dbs.transaction(async (t) => {
+      const res = await t.raw("UPDATE tx_items SET name = ? WHERE id = ?", [
+        "renamed",
+        1,
+      ]);
+      expect(res.rows).toEqual([]);
+      expect(res.rowCount).toBe(1);
+    });
+    const rows = await dbs
+      .collection("tx_items")
+      .find({})
+      .toArray<{ id: number; name: string }>();
+    expect(rows).toEqual([{ id: 1, name: "renamed" }]);
+  });
+
+  test("DBS.transaction always calls end()", async () => {
+    const endCalls: string[] = [];
+    await dbs.transaction(async (t) => {
+      const originalEnd = t.end.bind(t);
+      t.end = async () => {
+        endCalls.push("commit-path");
+        return originalEnd();
+      };
+      await t.collection("tx_items").insert([{ id: 1, name: "a" }]);
+    });
+    expect(endCalls).toEqual(["commit-path"]);
+
+    await expect(
+      dbs.transaction(async (t) => {
+        const originalEnd = t.end.bind(t);
+        t.end = async () => {
+          endCalls.push("error-path");
+          return originalEnd();
+        };
+        throw new Error("boom");
+      })
+    ).rejects.toThrow("boom");
+    expect(endCalls).toEqual(["commit-path", "error-path"]);
+  });
 });
