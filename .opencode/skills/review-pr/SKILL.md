@@ -53,10 +53,11 @@ Parse `$ARGUMENTS` as: `<pr-number>`. The calling workflow may also pass a `<com
     ```mcp
     update_pull_request(pr_number=<pr-number>, draft=false)
     ```
-  - Request `phuhl` as reviewer:
-    ```bash
-    gh pr edit <pr-number> --add-reviewer phuhl
-    ```
 - If findings were posted, leave the PR state as-is so the author can fix them.
+
+In **both cases**, request `phuhl` as reviewer so a human is notified:
+```bash
+gh pr edit <pr-number> --add-reviewer phuhl
+```
 
 **Note:** The calling workflow handles adding a reaction to the triggering comment.

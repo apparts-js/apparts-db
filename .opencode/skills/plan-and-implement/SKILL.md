@@ -156,14 +156,11 @@ Before promoting the PR, run the same audits that `review-pr` runs and fix any `
 When all subtasks are checked and the self-check is clean:
 1. Merge base branch one final time (same steps as above) to ensure the PR is up to date.
 2. Update the PR body with a reviewer summary using `update_pull_request`.
-3. Promote the PR to ready:
-   ```mcp
-   update_pull_request(pr_number=<pr_number>, draft=false)
-   ```
-4. Add the `complete` label to trigger the CI gate:
+3. Add the `complete` label to trigger the CI gate and automatic review:
    ```mcp
    add_labels_to_pr(pr_number=<pr_number>, labels=["complete"])
    ```
+   **Leave the PR as draft.** The `review-pr` skill will promote it to ready only if the automatic audits pass cleanly.
 
 ## Principles
 - Push every commit. Each push is a checkpoint.
