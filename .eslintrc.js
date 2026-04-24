@@ -17,14 +17,8 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["*.test.js"],
-      env: {
-        jest: true,
-      },
-    },
-    {
       files: ["*.ts"],
-      plugins: ["@typescript-eslint", "jest"],
+      plugins: ["@typescript-eslint"],
       extends: [
         "eslint:recommended",
         "plugin:@typescript-eslint/eslint-recommended",
