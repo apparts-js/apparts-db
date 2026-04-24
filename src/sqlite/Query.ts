@@ -200,7 +200,9 @@ class Query extends GenericQuery {
         const mapped = this._mapJsonType(v.value);
         mapped.forEach((m) => vals.push(m));
         const placeholders = mapped.map(() => "?").join(",");
-        return `json_type(${key}, '${this._jsonPointer(v.path)}') IN (${placeholders})`;
+        return `json_type(${key}, '${this._jsonPointer(
+          v.path
+        )}') IN (${placeholders})`;
       }
       default:
         throw new Error("ERROR, operator not implemented: " + op);

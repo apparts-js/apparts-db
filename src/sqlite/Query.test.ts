@@ -60,20 +60,15 @@ runOrSkip("SQLite Query CRUD", () => {
   });
 
   test("findById returns a single matching row", async () => {
-    const rows = await dbs
-      .collection("items")
-      .findById({ id: 1 })
-      .toArray<{ id: number; name: string; age: number; meta: string | null }>();
-    expect(rows).toEqual([
-      { id: 1, name: "alice", age: 30, meta: null },
-    ]);
+    const rows = await dbs.collection("items").findById({ id: 1 }).toArray<{
+      id: number;
+      name: string;
+      age: number;
+      meta: string | null;
+    }>();
+    expect(rows).toEqual([{ id: 1, name: "alice", age: 30, meta: null }]);
     // Pin the exact column shape so an unexpected extra column would be caught.
-    expect(Object.keys(rows[0]).sort()).toEqual([
-      "age",
-      "id",
-      "meta",
-      "name",
-    ]);
+    expect(Object.keys(rows[0]).sort()).toEqual(["age", "id", "meta", "name"]);
   });
 
   test("findByIds returns rows for all provided ids (array branch)", async () => {
@@ -253,9 +248,7 @@ runOrSkip("SQLite Query CRUD", () => {
   });
 
   test("find order by JSON path", async () => {
-    await dbs.raw(
-      "CREATE TABLE ord (id INTEGER PRIMARY KEY, payload TEXT)"
-    );
+    await dbs.raw("CREATE TABLE ord (id INTEGER PRIMARY KEY, payload TEXT)");
     await dbs.collection("ord").insert([
       { id: 1, payload: JSON.stringify({ rank: 20 }) },
       { id: 2, payload: JSON.stringify({ rank: 10 }) },
@@ -345,9 +338,7 @@ runOrSkip("SQLite Query CRUD", () => {
 
   test("_transformValue stores arrays as JSON on insert", async () => {
     await dbs.raw("CREATE TABLE lists (id INTEGER PRIMARY KEY, tags TEXT)");
-    await dbs
-      .collection("lists")
-      .insert([{ id: 1, tags: ["a", "b", "c"] }]);
+    await dbs.collection("lists").insert([{ id: 1, tags: ["a", "b", "c"] }]);
     const rows = await dbs
       .collection("lists")
       .find({})
@@ -581,12 +572,12 @@ runOrSkip("SQLite Query constraint errors", () => {
   });
 
   test("insert rejecting NOT NULL maps to _code 3", async () => {
-    await expect(
-      dbs.collection("parents").insert([{ id: 1 }])
-    ).rejects.toEqual({
-      msg: "ERROR, tried to insert, constraints not met",
-      _code: 3,
-    });
+    await expect(dbs.collection("parents").insert([{ id: 1 }])).rejects.toEqual(
+      {
+        msg: "ERROR, tried to insert, constraints not met",
+        _code: 3,
+      }
+    );
   });
 
   test("insert rejecting CHECK maps to _code 3", async () => {
@@ -604,9 +595,7 @@ runOrSkip("SQLite Query constraint errors", () => {
   test("remove rejecting FK constraint maps to _code 2", async () => {
     await dbs.collection("parents").insert([{ id: 1, label: "ok" }]);
     await dbs.collection("children").insert([{ id: 1, parent_id: 1 }]);
-    await expect(
-      dbs.collection("parents").remove({ id: 1 })
-    ).rejects.toEqual({
+    await expect(dbs.collection("parents").remove({ id: 1 })).rejects.toEqual({
       msg: "ERROR, tried to remove item that is still a reference",
       _code: 2,
     });
@@ -658,16 +647,14 @@ runOrSkip("SQLite Query guards and helpers", () => {
   });
 
   test("checkKey rejects filter keys containing double quotes", () => {
-    expect(() =>
-      dbs.collection("g").find({ 'bad"col': 1 })
-    ).toThrow('Key must not contain "!');
+    expect(() => dbs.collection("g").find({ 'bad"col': 1 })).toThrow(
+      'Key must not contain "!'
+    );
   });
 
   test("checkKey rejects insert column names containing double quotes", async () => {
     await expect(
-      dbs
-        .collection("g")
-        .insert([{ 'bad"col': 1 } as Record<string, unknown>])
+      dbs.collection("g").insert([{ 'bad"col': 1 } as Record<string, unknown>])
     ).rejects.toBe('Key must not contain "!');
   });
 
