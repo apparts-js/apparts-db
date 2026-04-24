@@ -100,7 +100,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
         run: |
-          opencode run "Load the resolve-pr-conflicts skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
+          opencode run --model opencode-go/kimi-k2.6 "Load the resolve-pr-conflicts skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
 
       - name: Record autofix attempt (conflicts)
         if: steps.mergeable.outputs.has_conflicts == 'true' && steps.attempts.outputs.exhausted != 'true'
@@ -176,7 +176,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
         run: |
-          opencode run "Load the fix-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }} with context ci-failing"
+          opencode run --model opencode-go/kimi-k2.6 "Load the fix-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }} with context ci-failing"
 
       - name: Record autofix attempt (CI failing)
         if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'failing' && steps.attempts.outputs.exhausted != 'true'
@@ -218,7 +218,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
         run: |
-          opencode run "Load the review-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
+          opencode run --model opencode-go/kimi-k2.6 "Load the review-pr skill and run it for PR #${{ steps.meta.outputs.pr_number }}"
 
       - name: Reset autofix attempt labels
         if: steps.mergeable.outputs.has_conflicts == 'false' && steps.ci.outputs.status == 'passing'

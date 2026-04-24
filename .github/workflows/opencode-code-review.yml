@@ -53,7 +53,7 @@ jobs:
         run: |
           PR="${{ github.event.issue.number || github.event.inputs.pr_number }}"
           COMMENT="${{ github.event.comment.id || github.event.inputs.comment_id }}"
-          opencode run "Load the review-pr skill and run it for PR #${PR} with comment ID ${COMMENT}"
+          opencode run --model opencode-go/kimi-k2.6 "Load the review-pr skill and run it for PR #${PR} with comment ID ${COMMENT}"
 
       - name: React to triggering PR comment
         if: success() && github.event_name != 'workflow_dispatch'

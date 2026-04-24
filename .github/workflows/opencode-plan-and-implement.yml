@@ -40,4 +40,4 @@ jobs:
           OPENCODE_DISABLE_EXTERNAL_SKILLS: "true"
         run: |
           ISSUE="${{ github.event.issue.number || github.event.inputs.issue_number }}"
-          opencode run "Load the plan-and-implement skill and run it for issue #${ISSUE}"
+          opencode run --model opencode-go/kimi-k2.6 "Load the plan-and-implement skill and run it for issue #${ISSUE}"
