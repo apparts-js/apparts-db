@@ -8,11 +8,11 @@ import DBS from "./DBS";
 describe("Log on error behavior", () => {
   let logMock, e, query, dbs;
   beforeEach(() => {
-    logMock = jest.spyOn(console, "log").mockImplementation(() => {
+    logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // nothign
     });
     e = new Error("test");
-    query = jest.fn().mockImplementation(async () => {
+    query = vi.fn().mockImplementation(async () => {
       throw e;
     });
     dbs = new DBS({} as any, { logs: "errors", logParams: true } as any);
@@ -444,7 +444,9 @@ describe("Filters", () => {
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
   });
   it("Should fail to find with of operator, no level deep", async () => {
-    expect(async () => {
+    // find() throws synchronously on an empty JSON path, so wrap in an async
+    // fn to turn the throw into a rejection that expect(...).rejects can see.
+    await expect(async () => {
       await dbs
         .collection("testTable3")
         .find({
@@ -811,7 +813,7 @@ describe("Table", () => {
     await expect(dbs.collection("testTable2").drop()).resolves.toMatchObject(
       {}
     );
-    const logMock = jest.spyOn(console, "log").mockImplementation(() => {
+    const logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // nothign
     });
     await expect(

@@ -20,7 +20,7 @@ CREATE TABLE "testTable" (
   test("Should commit", async () => {
     let transactionMock;
     const res = await dbs.transaction(async (t) => {
-      transactionMock = jest.spyOn(t, "end");
+      transactionMock = vi.spyOn(t, "end");
 
       await expect(
         t.collection("testTable").insert([{ number: 100 }])
@@ -39,7 +39,7 @@ CREATE TABLE "testTable" (
     let transactionMock;
     await expect(() =>
       dbs.transaction(async (t) => {
-        transactionMock = jest.spyOn(t, "end");
+        transactionMock = vi.spyOn(t, "end");
 
         await expect(
           t.collection("testTable").insert([{ number: 100 }])
