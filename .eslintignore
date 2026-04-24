@@ -1,4 +1,5 @@
 .eslintrc.js
 .eslintrc.ci.js
-jest.config.js
 build/
+coverage/
+vitest.config.ts
