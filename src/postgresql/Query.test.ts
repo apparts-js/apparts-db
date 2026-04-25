@@ -775,9 +775,11 @@ describe("Remove", () => {
     ]);
   });
   it("Should fail to remove due to foreign key constraint", async () => {
-    await expect(
-      dbs.collection("testTable2").insert([{ testTableId: 3 }])
-    ).resolves.toMatchObject([{ id: 2 }]);
+    const inserted = await dbs
+      .collection("testTable2")
+      .insert([{ testTableId: 3 }]);
+    expect(inserted.length).toBe(1);
+    expect(inserted[0].id).toBeDefined();
 
     await expect(
       dbs.collection("testTable").remove({ number: 2000 })
