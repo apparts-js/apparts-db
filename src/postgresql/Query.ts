@@ -3,6 +3,11 @@ import { PGConfig } from "./Config";
 
 import { LogFunc } from "./types";
 import { Params, Order, Result, GenericQuery } from "../generic";
+import {
+  UniqueConstraintViolation,
+  ForeignKeyConstraintViolation,
+  CheckConstraintViolation,
+} from "../errors";
 
 class Query extends GenericQuery {
   _dbs: Pool | PoolClient;
@@ -297,15 +302,9 @@ class Query extends GenericQuery {
       })
       .catch((err) => {
         if (err.code === "23505") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, not unique",
-            _code: 1,
-          });
+          return Promise.reject(new UniqueConstraintViolation());
         } else if (err.code === "23503" || err.code === "23514") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, constraints not met",
-            _code: 3,
-          });
+          return Promise.reject(new CheckConstraintViolation());
         } else {
           this._log("Error in insert:", q, params, err);
           return Promise.reject(err);
@@ -336,10 +335,9 @@ class Query extends GenericQuery {
       return await this._dbs.query(q, vals);
     } catch (e) {
       if ((e as { code: string }).code === "23505") {
-        return Promise.reject({
-          msg: "ERROR, tried to update, not unique",
-          _code: 1,
-        });
+        return Promise.reject(
+          new UniqueConstraintViolation("ERROR, tried to update, not unique")
+        );
       }
 
       this._log("Error in updateOne:", q, vals, e);
@@ -355,10 +353,7 @@ class Query extends GenericQuery {
       return await this._dbs.query(q, newVals);
     } catch (err) {
       if ((err as { code: string }).code === "23503") {
-        return Promise.reject({
-          msg: "ERROR, tried to remove item that is still a reference",
-          _code: 2,
-        });
+        return Promise.reject(new ForeignKeyConstraintViolation());
       } else {
         this._log("Error in remove:", q, newVals, err);
         throw err;
