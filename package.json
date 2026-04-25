@@ -15,7 +15,8 @@
     "ci": "npm ci && npm run ci:prettier && npm run ci:eslint && npm run ci:test",
     "ci:prettier": "CI=true prettier --check .",
     "ci:test": "CI=true vitest run",
-    "ci:eslint": "eslint . --ext .js,.jsx,.ts,.tsx -c .eslintrc.js"
+    "ci:eslint": "eslint . --ext .js,.jsx,.ts,.tsx -c .eslintrc.js",
+    "ci:tsc": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
