@@ -21,6 +21,7 @@ import {
 } from "../generic";
 import { DynamoConfig } from "./Config";
 import {
+  buildUpdateInput,
   isSinglePrimaryKeyLookup,
   namePlaceholder,
   valuePlaceholder,
@@ -508,32 +509,13 @@ class Query extends GenericQuery {
       );
     }
 
-    const setKeys = Object.keys(c);
-    if (setKeys.length === 0) {
+    const input = buildUpdateInput(this._table, single.key!, c);
+    if (input === null) {
       return { rows: [] as T[], rowCount: 0 };
     }
 
-    const attrNames: Record<string, string> = { "#pk": PK };
-    const attrValues: Record<string, unknown> = {};
-    const assignments = setKeys.map((k) => {
-      const n = namePlaceholder(k, attrNames);
-      const v = valuePlaceholder(c[k], attrValues);
-      return `${n} = ${v}`;
-    });
-
     try {
-      await this._client.send(
-        new UpdateCommand({
-          TableName: this._table,
-          Key: { [PK]: single.key },
-          UpdateExpression: "SET " + assignments.join(", "),
-          // Without this, UpdateItem would upsert. Match the Postgres
-          // UPDATE ... WHERE id = ... semantics: missing row -> rowCount 0.
-          ConditionExpression: "attribute_exists(#pk)",
-          ExpressionAttributeNames: attrNames,
-          ExpressionAttributeValues: attrValues,
-        })
-      );
+      await this._client.send(new UpdateCommand(input));
       return { rows: [] as T[], rowCount: 1 };
     } catch (e) {
       if (isConditionalCheckFailed(e)) {

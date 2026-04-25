@@ -1,11 +1,7 @@
 import { TransactWriteCommandInput } from "@aws-sdk/lib-dynamodb";
 
 import { Id, NotSupportedByDBEngine, Order, Params, Result } from "../generic";
-import {
-  isSinglePrimaryKeyLookup,
-  namePlaceholder,
-  valuePlaceholder,
-} from "./filterHelpers";
+import { buildUpdateInput, isSinglePrimaryKeyLookup } from "./filterHelpers";
 import Query from "./Query";
 
 export type TransactItem = NonNullable<
@@ -149,27 +145,9 @@ class TransactionQuery extends Query {
         `Transaction update: DynamoDB UpdateItem requires a single primary key lookup on "${PK}".`
       );
     }
-    const setKeys = Object.keys(c);
-    if (setKeys.length === 0) {
-      return { rows: [] as T[], rowCount: 0 };
-    }
-    const attrNames: Record<string, string> = { "#pk": PK };
-    const attrValues: Record<string, unknown> = {};
-    const assignments = setKeys.map((k) => {
-      const n = namePlaceholder(k, attrNames);
-      const v = valuePlaceholder(c[k], attrValues);
-      return `${n} = ${v}`;
-    });
-    this._writes.push({
-      Update: {
-        TableName: this._table,
-        Key: { [PK]: single.key },
-        UpdateExpression: "SET " + assignments.join(", "),
-        ConditionExpression: "attribute_exists(#pk)",
-        ExpressionAttributeNames: attrNames,
-        ExpressionAttributeValues: attrValues,
-      },
-    });
+    const input = buildUpdateInput(this._table, single.key!, c);
+    if (input === null) return { rows: [] as T[], rowCount: 0 };
+    this._writes.push({ Update: input });
     return { rows: [] as T[], rowCount: 1 };
   }
 
