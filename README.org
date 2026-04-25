@@ -359,17 +359,31 @@ await dbs.transaction(async (t) => {
 
 ** Error Handling
 
-Insert and update operations return structured errors for common constraint violations:
+Insert and update operations throw structured error classes for common constraint violations. These classes can be imported from ~@apparts/db~ and used with ~instanceof~ checks.
 
-| Code | Meaning |
-|------|---------|
-| ~1~  | Unique constraint violation |
-| ~2~  | Foreign key constraint violation (on delete) |
-| ~3~  | Check/foreign key constraint violation (on insert) |
+| Class | Code | Meaning |
+|-------|------|---------|
+| ~UniqueConstraintViolation~ | ~1~ | Unique constraint violation (insert / update) |
+| ~ForeignKeyConstraintViolation~ | ~2~ | Foreign key constraint violation (on delete) |
+| ~CheckConstraintViolation~ | ~3~ | Check constraint violation (on insert) |
+
+All error classes extend ~DBError~, which exposes ~code~, ~_code~, ~msg~, and ~name~.
 
 #+BEGIN_SRC typescript
-import { connect } from "@apparts/db";
+import { connect, UniqueConstraintViolation, ForeignKeyConstraintViolation, CheckConstraintViolation } from "@apparts/db";
 
+try {
+  await dbs.collection("users").insert([{ email: "duplicate@example.com" }]);
+} catch (e: any) {
+  if (e instanceof UniqueConstraintViolation) {
+    console.log("Duplicate entry");
+  }
+}
+#+END_SRC
+
+For backward compatibility, the numeric ~_code~ property is still available:
+
+#+BEGIN_SRC typescript
 try {
   await dbs.collection("users").insert([{ email: "duplicate@example.com" }]);
 } catch (e: any) {
