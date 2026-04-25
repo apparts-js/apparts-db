@@ -237,7 +237,7 @@ describe("Insert", () => {
       dbs.collection("testTable").insert([{ number: 100, id: 1 }])
     ).rejects.toBeInstanceOf(UniqueConstraintViolation);
   });
-  it("Should fail to insert with unmet foreign constraint", async () => {
+  it("Should fail to insert with unmet check or foreign constraint", async () => {
     await expect(
       dbs.collection("testTable2").insert([{ testTableId: 10000 }])
     ).rejects.toBeInstanceOf(CheckConstraintViolation);
