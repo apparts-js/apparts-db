@@ -34,7 +34,9 @@ describe("Error classes", () => {
 
   it("ForeignKeyConstraintViolation should have code 2", () => {
     const err = new ForeignKeyConstraintViolation();
-    expect(err.message).toBe("ERROR, tried to remove item that is still a reference");
+    expect(err.message).toBe(
+      "ERROR, tried to remove item that is still a reference",
+    );
     expect(err.code).toBe(2);
     expect(err._code).toBe(2);
     expect(err.name).toBe("ForeignKeyConstraintViolation");
