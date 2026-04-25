@@ -19,7 +19,6 @@
   - Bad: const r = true;
 - Reduce global variables as far as possible.
 
-
 ## If-Statements
 
 - Try to keep together what belongs together:
@@ -89,7 +88,7 @@ describe('Authentication', () => {
 
 - Do not add doc comments for self-explanatory code. If the purpose of a function, parameter, or return value is already obvious from its name and type, skip the comment.
 - Add a doc comment (e.g. JSDoc) when there is extra context the caller must know: preconditions, side effects, performance characteristics, non-obvious edge cases, or architectural rationale.
-- Keep doc comments concise. Transport the *additional* information; do not restate what the code already says.
+- Keep doc comments concise. Transport the _additional_ information; do not restate what the code already says.
 
 ```js
 // DON'T DO: Restates the obvious
@@ -111,18 +110,18 @@ const safeAdd = (a, b) => Math.min(a + b, Number.MAX_SAFE_INTEGER);
 
 ## Error Messages
 
-- Error messages should be actionable: tell the user *what went wrong* and, when possible, *how to fix it*.
+- Error messages should be actionable: tell the user _what went wrong_ and, when possible, _how to fix it_.
 - Phrase messages in plain language. Avoid internal jargon, stack-trace noise, or cryptic codes unless they are surfaced to an operator who explicitly needs them.
 - Include relevant identifiers (file names, IDs, configuration keys) so the message is useful in logs and support tickets.
 
 ```js
 // DON'T DO: Vague and unhelpful
-throw new Error('Failed');
+throw new Error("Failed");
 
 // DO: Actionable and specific
 throw new Error(
   `Upload failed for "${fileName}": file exceeds the maximum size of ${MAX_SIZE_MB} MB. ` +
-  `Please compress the image or reduce its dimensions.`
+    `Please compress the image or reduce its dimensions.`
 );
 ```
 
