@@ -27,7 +27,7 @@ CREATE TABLE "testTable" (
       ).resolves.toMatchObject([{ id: 1 }]);
       return 123;
     });
-    expect(transactionMock.mock.calls.length).toBe(1);
+    expect(transactionMock.mock.calls).toHaveLength(1);
 
     await expect(
       dbs.collection("testTable").findById({}).toArray()
@@ -47,7 +47,7 @@ CREATE TABLE "testTable" (
         throw new Error("Rollback");
       })
     ).rejects.toThrow("Rollback");
-    expect(transactionMock.mock.calls.length).toBe(1);
+    expect(transactionMock.mock.calls).toHaveLength(1);
     await expect(
       dbs.collection("testTable").findById({}).toArray()
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);

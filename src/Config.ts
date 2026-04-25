@@ -5,5 +5,5 @@ interface Config {
   postgresql: PGConfig;
 }
 
-export { PGConfig };
+export type { PGConfig };
 export default Config;
