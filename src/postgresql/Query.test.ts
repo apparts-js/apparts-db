@@ -253,48 +253,6 @@ describe("Insert", () => {
   });
 });
 
-describe("InsertOrUpdate", () => {
-  it("Should insert when no row exists for the given id", async () => {
-    await expect(
-      dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 1 }])
-    ).resolves.toMatchObject([{ id: 9001 }]);
-  });
-  it("Should overwrite existing rows on PK conflict (no _code:1)", async () => {
-    await expect(
-      dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 999 }])
-    ).resolves.toMatchObject([{ id: 9001 }]);
-    const rows = await dbs.collection("testTable").find({ id: 9001 }).toArray();
-    expect(rows).toMatchObject([{ id: 9001, number: 999 }]);
-  });
-  it("Should accept multi-row payloads in a single call", async () => {
-    await expect(
-      dbs.collection("testTable").insertOrUpdate([
-        { id: 9002, number: 2 },
-        { id: 9003, number: 3 },
-      ])
-    ).resolves.toMatchObject([{ id: 9002 }, { id: 9003 }]);
-  });
-  it("Should still surface FK / CHECK violations as _code:3", async () => {
-    await expect(
-      dbs.collection("testTable2").insertOrUpdate([{ testTableId: 10000 }])
-    ).rejects.toMatchObject({
-      msg: "ERROR, tried to insert, constraints not met",
-      _code: 3,
-    });
-  });
-
-  afterAll(async () => {
-    // Clean up rows so downstream Update / Remove tests see the expected
-    // state (only ids 1-4 from the Insert block).
-    await dbs
-      .collection("testTable")
-      .remove({ id: { op: "in", val: [9001, 9002, 9003] } });
-    // The FK-violation test above consumes a sequence value on testTable2;
-    // reset it so the Remove test gets the expected id.
-    await dbs.raw('ALTER SEQUENCE "testTable2_id_seq" RESTART WITH 2');
-  });
-});
-
 describe("Find / findById", () => {
   it("Should findById", async () => {
     await expect(
@@ -975,5 +933,48 @@ CREATE TABLE "testNonJson" (
     ).resolves.toMatchObject([
       { id: 1, nonJsonArray: [1, 2, 4], jsonField: { a: 1 } },
     ]);
+  });
+});
+
+// InsertOrUpdate is last on purpose — it leaves rows with high ids
+// (9001..9003) in testTable, which would otherwise break the
+// fixture-row-count assertions of the read-style tests above.
+describe("InsertOrUpdate", () => {
+  beforeAll(async () => {
+    await dbs.raw(`
+CREATE TABLE IF NOT EXISTS "testTable2" (
+       id SERIAL PRIMARY KEY,
+       "testTableId" INT NOT NULL,
+       FOREIGN KEY ("testTableId") REFERENCES "testTable"(id)
+)`);
+  });
+
+  it("Should insert when no row exists for the given id", async () => {
+    await expect(
+      dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 1 }])
+    ).resolves.toMatchObject([{ id: 9001 }]);
+  });
+  it("Should overwrite existing rows on PK conflict (no _code:1)", async () => {
+    await expect(
+      dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 999 }])
+    ).resolves.toMatchObject([{ id: 9001 }]);
+    const rows = await dbs.collection("testTable").find({ id: 9001 }).toArray();
+    expect(rows).toMatchObject([{ id: 9001, number: 999 }]);
+  });
+  it("Should accept multi-row payloads in a single call", async () => {
+    await expect(
+      dbs.collection("testTable").insertOrUpdate([
+        { id: 9002, number: 2 },
+        { id: 9003, number: 3 },
+      ])
+    ).resolves.toMatchObject([{ id: 9002 }, { id: 9003 }]);
+  });
+  it("Should still surface FK / CHECK violations as _code:3", async () => {
+    await expect(
+      dbs.collection("testTable2").insertOrUpdate([{ testTableId: 10000 }])
+    ).rejects.toMatchObject({
+      msg: "ERROR, tried to insert, constraints not met",
+      _code: 3,
+    });
   });
 });
