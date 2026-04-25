@@ -1,15 +1,18 @@
 export class DBError extends Error {
   code: number;
+  _code: number;
   constructor(message: string, code: number) {
     super(message);
     this.code = code;
+    this._code = code;
+    this.name = this.constructor.name;
     Object.setPrototypeOf(this, DBError.prototype);
   }
 }
 
 export class UniqueConstraintViolation extends DBError {
-  constructor() {
-    super("ERROR, tried to insert, not unique", 1);
+  constructor(message?: string) {
+    super(message || "ERROR, tried to insert, not unique", 1);
     Object.setPrototypeOf(this, UniqueConstraintViolation.prototype);
   }
 }
