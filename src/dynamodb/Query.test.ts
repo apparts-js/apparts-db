@@ -267,6 +267,7 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
       "x1",
       "x2",
       "x3",
+      "x5",
     ]);
     expect(await ids({ tag: { op: "exists", val: false } })).toEqual(["x4"]);
   });
@@ -285,6 +286,7 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
     expect(await ids(p({ tag: { op: "notin", val: ["a", "c"] } }))).toEqual([
       "x2",
       "x4",
+      "x5",
     ]);
   });
 
@@ -302,8 +304,12 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
   test("comparison operators: lt, lte, gt, gte", async () => {
     expect(await ids({ number: { op: "lt", val: 5 } })).toEqual(["x1"]);
     expect(await ids({ number: { op: "lte", val: 5 } })).toEqual(["x1", "x2"]);
-    expect(await ids({ number: { op: "gt", val: 10 } })).toEqual(["x4"]);
-    expect(await ids({ number: { op: "gte", val: 10 } })).toEqual(["x3", "x4"]);
+    expect(await ids({ number: { op: "gt", val: 10 } })).toEqual(["x4", "x5"]);
+    expect(await ids({ number: { op: "gte", val: 10 } })).toEqual([
+      "x3",
+      "x4",
+      "x5",
+    ]);
   });
 
   test("and operator combines sub-filters", async () => {
