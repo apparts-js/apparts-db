@@ -136,7 +136,7 @@ class Query extends GenericQuery {
 
   _checkKey(key: string) {
     if (/"/.test(key)) {
-      throw 'Key must not contain "!';
+      throw new Error('Key must not contain double quotes (")');
     }
   }
 
@@ -387,7 +387,7 @@ class Query extends GenericQuery {
         });
       }
 
-      this._log("Error in updateOne:", q, vals, e);
+      this._log("Error in update:", q, vals, e);
       throw e;
     }
   }

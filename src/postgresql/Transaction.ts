@@ -36,11 +36,11 @@ class Transaction extends Queriable implements GenericTransaction {
   }
 
   async commit() {
-    this._dbs.query("COMMIT");
+    await this._dbs.query("COMMIT");
   }
 
   async rollback() {
-    this._dbs.query("ROLLBACK");
+    await this._dbs.query("ROLLBACK");
   }
 
   async end() {

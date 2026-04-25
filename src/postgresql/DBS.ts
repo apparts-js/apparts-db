@@ -59,7 +59,7 @@ class DBS extends Queriable implements GenericDBS {
    *                           <true/false>, default: <defaultVal> }
    * @returns Promise
    */
-  createCollection(
+  async createCollection(
     name: string,
     indexes: {
       key?: string[];
@@ -119,7 +119,7 @@ class DBS extends Queriable implements GenericDBS {
     // with
     q += ") WITH ( OIDS = FALSE )";
     try {
-      return this._dbs.query(q);
+      return await this._dbs.query(q);
     } catch (e) {
       this._log("Error in createCollection:", q, [], e);
       throw e;
