@@ -303,12 +303,14 @@ class Query extends GenericQuery {
       .catch((err) => {
         if (err.code === "23505") {
           return Promise.reject(new UniqueConstraintViolation());
-        } else if (err.code === "23503" || err.code === "23514") {
-          return Promise.reject(new CheckConstraintViolation());
-        } else {
-          this._log("Error in insert:", q, params, err);
-          return Promise.reject(err);
         }
+        // 23503 (foreign key) and 23514 (check constraint) are grouped
+        // on insert to preserve the legacy _code: 3 behavior.
+        if (err.code === "23503" || err.code === "23514") {
+          return Promise.reject(new CheckConstraintViolation());
+        }
+        this._log("Error in insert:", q, params, err);
+        return Promise.reject(err);
       });
   }
 
@@ -354,10 +356,9 @@ class Query extends GenericQuery {
     } catch (err) {
       if ((err as { code: string }).code === "23503") {
         return Promise.reject(new ForeignKeyConstraintViolation());
-      } else {
-        this._log("Error in remove:", q, newVals, err);
-        throw err;
       }
+      this._log("Error in remove:", q, newVals, err);
+      throw err;
     }
   }
 
