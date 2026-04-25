@@ -282,6 +282,17 @@ describe("InsertOrUpdate", () => {
       _code: 3,
     });
   });
+
+  afterAll(async () => {
+    // Clean up rows so downstream Update / Remove tests see the expected
+    // state (only ids 1-4 from the Insert block).
+    await dbs
+      .collection("testTable")
+      .remove({ id: { op: "in", val: [9001, 9002, 9003] } });
+    // The FK-violation test above consumes a sequence value on testTable2;
+    // reset it so the Remove test gets the expected id.
+    await dbs.raw('ALTER SEQUENCE "testTable2_id_seq" RESTART WITH 2');
+  });
 });
 
 describe("Find / findById", () => {
