@@ -85,9 +85,14 @@ If context is `review-comments`:
    ```mcp
    add_issue_comment(
      issue_number=<pr-number>,
-     body="All review comments addressed. Changes made:\n- <bullet list>"
-   )
+      body="All review comments addressed. Changes made:
    ```
+
+- <bullet list>"
+  )
+  ```
+
+  ```
 
 ## After fixing
 
