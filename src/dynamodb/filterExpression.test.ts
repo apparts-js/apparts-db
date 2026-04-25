@@ -46,6 +46,15 @@ describe("buildFilterExpression", () => {
     expect(r).toEqual({ kind: "always_false" });
   });
 
+  test("{op:'in',val:[...]} non-empty renders IN with placeholders", () => {
+    const r = buildFilterExpression({ tag: { op: "in", val: ["a", "b"] } });
+    expect(r.kind).toBe("expr");
+    if (r.kind !== "expr") return;
+    expect(r.expr).toBe("#n0 IN (:v0, :v1)");
+    expect(r.attrNames).toEqual({ "#n0": "tag" });
+    expect(r.attrValues).toEqual({ ":v0": "a", ":v1": "b" });
+  });
+
   test("{op:'notin',val:[]} → drops clause (always_true), other clauses remain", () => {
     const r = buildFilterExpression(
       p({
