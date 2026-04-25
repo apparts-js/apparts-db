@@ -11,6 +11,8 @@ on:
     types: [labeled]
   check_run:
     types: [completed]
+  workflow_run:
+    types: [completed]
   issues:
     types: [labeled]
   workflow_dispatch:
