@@ -254,6 +254,12 @@ describe("Insert", () => {
 });
 
 describe("InsertOrUpdate", () => {
+  afterAll(async () => {
+    await dbs
+      .collection("testTable")
+      .remove({ id: { op: "in", val: [9001, 9002, 9003] } });
+  });
+
   it("Should insert when no row exists for the given id", async () => {
     await expect(
       dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 1 }])
