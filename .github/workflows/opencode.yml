@@ -11,6 +11,9 @@ on:
     types: [labeled]
   check_run:
     types: [completed]
+  workflow_run:
+    workflows: ["Run API Tests"]
+    types: [completed]
   issues:
     types: [labeled]
   workflow_dispatch:
