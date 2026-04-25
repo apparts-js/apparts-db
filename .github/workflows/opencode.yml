@@ -27,7 +27,6 @@ on:
 
 jobs:
   master:
-    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
