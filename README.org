@@ -1,5 +1,5 @@
 #+TITLE: @apparts/db
-#+DATE: [2026-04-25 Sat]
+#+DATE: [2021-03-25 Thu]
 #+AUTHOR: Philipp Uhl
 
 Database abstraction layer for Node.js with support for multiple database engines. Currently supports *PostgreSQL*.
@@ -59,13 +59,13 @@ interface PGConfig {
   pw: string;                      // Password
   db: string;                      // Database name
   maxPoolSize?: number;            // Max pool size (default: 10)
-  connectionTimeoutMillis?: number; // Connection timeout (default: 0)
-  idleTimeoutMillis?: number;       // Idle timeout (default: 10000)
-  bigIntAsNumber?: boolean;         // Return BIGINT as number instead of string
-  idsAsBigInt?: boolean;           // Use BIGINT for auto-increment IDs
-  logs?: "errors";                 // Log mode: "errors" to log failed queries
-  logParams?: boolean;             // Include params in error logs
-  arrayAsJSON?: boolean;           // Store arrays as JSON strings
+  connectionTimeoutMillis?: number; // Connection timeout in ms (default: 0)
+  idleTimeoutMillis?: number;       // Idle timeout in ms (default: 10000)
+  bigIntAsNumber?: boolean;         // Return BIGINT as number instead of string (default: false)
+  idsAsBigInt?: boolean;           // Use BIGINT for auto-increment IDs (default: false)
+  logs?: "errors";                 // Log mode: "errors" to log failed queries (default: no logging)
+  logParams?: boolean;             // Include params in error logs (default: false)
+  arrayAsJSON?: boolean;           // Store arrays as JSON strings (default: false)
   poolConfig?: PoolConfig;         // Additional pg.Pool config
 }
 #+END_SRC
@@ -207,19 +207,63 @@ await dbs.collection("users").remove({ id: 1 });
 
 Drop the table.
 
+*** Order
+
+The ~order~ parameter is given as an array of objects. The order is
+established using the first array element. If two elements are equal
+according to that order, the next array element is used for ordering
+(and so on).
+
+The order array takes this form:
+
+#+BEGIN_SRC typescript
+[{ key: "<field>", dir: "ASC" | "DESC" }, ...]
+#+END_SRC
+
+The object can contain these keys:
+- ~key~ :: (required) The field that should be ordered.
+- ~dir~ :: (required) The direction: ~"ASC"~ for ascending or ~"DESC"~ for descending.
+- ~path~ :: (optional) If ~key~ describes a JSON field, ~path~ can be used
+  to specify by which element within a JSON object should be ordered.
+  Path is then an array of strings (keys) that define the path within
+  the nested JSON object.
+
+#+BEGIN_SRC typescript
+// Order by a nested JSON property
+await dbs.collection("users")
+  .find({}, 10, 0, [{ key: "metadata", dir: "ASC", path: ["age"] }])
+  .toArray();
+#+END_SRC
+
 *** Filters and Operators
 
-The ~find~ methods accept a ~Params~ object where values can be primitives or filter operators:
+The ~find~ methods accept a ~Params~ object where values can be primitives or filter operators. The value is either a direct value or an object that has ~op~ and ~val~ keys.
+
+Supported operators:
+- ~in~ :: ~val~ must be an array of possible values. The filter accepts rows where the field appears in the ~val~ array.
+- ~notin~ :: ~val~ must be an array of values. The filter accepts rows where the field does *not* appear in the ~val~ array.
+- ~of~ :: JSONB path query. ~val~ is an object with:
+  - ~path~ — an array of keys for the nested JSON property.
+  - ~value~ — either a direct value to compare, or another filter operator.
+  - ~cast~ (optional) — cast the JSON value before comparison. Can be ~"number"~ or ~"boolean"~. PostgreSQL returns strings for JSON values, so numeric comparisons require ~cast: "number"~.
+- ~oftype~ :: Checks the type of a JSONB property. Requires a JSONB column. ~val~ is an object with:
+  - ~path~ — an array of keys for the nested JSON property.
+  - ~value~ — one of ~"object"~, ~"array"~, ~"string"~, ~"number"~, ~"boolean"~, or ~"null"~.
+- ~exists~ :: Checks if an optional field is ~null~ or not. If ~val~ is ~true~, the field must be not ~null~. If ~val~ is ~false~, the field must be ~null~.
+- ~lte~ / ~lt~ / ~gte~ / ~gt~ :: Comparison operators. ~val~ must be a number.
+- ~like~ / ~ilike~ :: Pattern matching with SQL ~LIKE~. ~ilike~ is case-insensitive. Use ~%~ as a wildcard.
+- ~and~ :: Combines multiple filters with logical AND. ~val~ must be an array of filter objects.
 
 #+BEGIN_SRC typescript
 type Filter =
-  | { op: "and"; val: Filter[] }                    // AND multiple conditions
-  | { op: "in"; val: (string | number | boolean | null)[] } // IN operator
-  | { op: "of"; val: { path: string[]; value: Filter | primitive; cast? } } // JSONB path query
-  | { op: "oftype"; val: { path: string[]; value: type } } // JSONB type check
-  | { op: "exists"; val: boolean }                  // IS NULL / IS NOT NULL
-  | { op: "lte" | "lt" | "gte" | "gt"; val: number } // Comparison operators
-  | { op: "like" | "ilike"; val: string };          // Pattern matching
+  | { op: "and"; val: Filter[] }
+  | { op: "in"; val: (string | number | boolean | null)[] }
+  | { op: "notin"; val: (string | number | boolean | null)[] }
+  | { op: "of"; val: { path: string[]; value: Filter | primitive; cast?: "number" | "boolean" } }
+  | { op: "oftype"; val: { path: string[]; value: "object" | "array" | "string" | "number" | "boolean" | "null" } }
+  | { op: "exists"; val: boolean }
+  | { op: "lte" | "lt" | "gte" | "gt"; val: number }
+  | { op: "like" | "ilike"; val: string };
 #+END_SRC
 
 **** Examples
@@ -235,14 +279,29 @@ await dbs.collection("users").find({
   role: { op: "in", val: ["admin", "moderator"] }
 }).toArray();
 
+// NOT IN operator
+await dbs.collection("users").find({
+  role: { op: "notin", val: ["banned"] }
+}).toArray();
+
 // JSONB query (PostgreSQL)
 await dbs.collection("users").find({
   metadata: { op: "of", val: { path: ["age"], value: 30 } }
 }).toArray();
 
+// JSONB query with cast for numeric comparison
+await dbs.collection("users").find({
+  metadata: { op: "of", val: { path: ["age"], value: { op: "gte", val: 18 }, cast: "number" } }
+}).toArray();
+
 // Pattern matching (case-insensitive)
 await dbs.collection("users").find({
   name: { op: "ilike", val: "%alice%" }
+}).toArray();
+
+// Exists check
+await dbs.collection("users").find({
+  deletedAt: { op: "exists", val: false }
 }).toArray();
 
 // Combined conditions
@@ -252,6 +311,31 @@ await dbs.collection("users").find({
     { op: "lt", val: 65 }
   ]}
 }).toArray();
+#+END_SRC
+
+**** Filter Grammar
+
+The full filter syntax:
+
+#+BEGIN_SRC js
+const filter = { <key>: <matcher>, ... };
+// where <key> is a field name and
+// where <matcher> is
+<matcher> = <value>
+        | { op: <numoperator>, val: <number> }
+        | { op: <stroperator>, val: <string> }
+        | { op: "and", val: <matcher>[] }
+        | { op: "in", val: [<values>] }
+        | { op: "notin", val: [<values>] }
+        | { op: "of", val: { path: [<string>], value: <value> | <matcher>, cast?: "number" | "boolean" } }
+        | { op: "oftype", val: { path: [<string>], value: <jsontype> } }
+        | { op: "exists", val: <boolean> }
+
+<numoperator> = "lte" | "lt" | "gte" | "gt"
+<stroperator> = "like" | "ilike"
+<jsontype>    = "object" | "array" | "string" | "number" | "boolean" | "null"
+<value>       = <string> | <number> | <boolean> | null
+<values>      = <value>, <values> | /* nothing */
 #+END_SRC
 
 ** Transactions
