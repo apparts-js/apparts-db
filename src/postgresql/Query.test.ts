@@ -940,6 +940,15 @@ CREATE TABLE "testNonJson" (
 // (9001..9003) in testTable, which would otherwise break the
 // fixture-row-count assertions of the read-style tests above.
 describe("InsertOrUpdate", () => {
+  beforeAll(async () => {
+    await dbs.raw(`
+CREATE TABLE IF NOT EXISTS "testTable2" (
+       id SERIAL PRIMARY KEY,
+       "testTableId" INT NOT NULL,
+       FOREIGN KEY ("testTableId") REFERENCES "testTable"(id)
+)`);
+  });
+
   it("Should insert when no row exists for the given id", async () => {
     await expect(
       dbs.collection("testTable").insertOrUpdate([{ id: 9001, number: 1 }])
