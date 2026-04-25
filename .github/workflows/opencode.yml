@@ -9,18 +9,20 @@ on:
     types: [submitted]
   pull_request:
     types: [labeled]
+  check_run:
+    types: [completed]
   issues:
     types: [labeled]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'PR number (for address-review, code-review, complete-gate)'
+        description: "PR number (for address-review, code-review, complete-gate)"
         required: false
       comment_id:
-        description: 'Triggering comment ID (for code-review)'
+        description: "Triggering comment ID (for code-review)"
         required: false
       issue_number:
-        description: 'Issue number (for plan-and-implement)'
+        description: "Issue number (for plan-and-implement)"
         required: false
 
 jobs:
