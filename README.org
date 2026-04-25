@@ -1,224 +1,300 @@
 #+TITLE: @apparts/db
-#+DATE: [2021-03-25 Thu]
+#+DATE: [2026-04-25 Sat]
 #+AUTHOR: Philipp Uhl
 
-A wrapper and query builder around the [[https://node-postgres.com/][pg]].  The API exposed by this
-package is meant to be usable with other database system
-(e.g. mongodb), too. Thus this package shall serve as an adapter
-between the database driver and your code.
+Database abstraction layer for Node.js with support for multiple database engines. Currently supports *PostgreSQL*.
 
-* Usage
+** Installation
 
-Install:
-
-#+BEGIN_SRC sh
-npm i --save @apparts/db
+#+BEGIN_SRC bash
+npm install @apparts/db
 #+END_SRC
 
-#+BEGIN_SRC js
-const connect = require("@apparts/db");
+You also need to install the driver for your database:
 
-const DB_CONFIG = {
-  "use": "postgresql",
-  "postgresql": {
-    // pg settings
-    "host": "localhost",
-    "port": 5432,
-    "user": "postgres",
-    "pw": "password",
-    "db": "databasename",
-    "maxPoolSize": 5,
-    "connectionTimeoutMillis": 0,
-    "idleTimeoutMillis": 1000,
-    
-    // Use bigint as id instead of integer
-    "idsAsBigInt": false,
-    
-    // Should bigint be returned as number? If false, a string will be returned
-    "bigIntAsNumber": true,
-    
-    // Use json type when finding an array, defaults to false
-    "arrayAsJSON": true,
-    
-    // Turn on logging on error. Default: no logging
-    "logs": "errors",
-    
-    // Also log query parameters on error. Only effective if "logs" === "errors".
-    "logParams": true
-  }
-};
+#+BEGIN_SRC bash
+npm install pg
+#+END_SRC
 
-connect(DB_CONFIG, (e, dbs) => {
-  if(e) {
-    // handle error
-    throw e;
-  }
-  // use dbs
+** Quick Start
+
+#+BEGIN_SRC typescript
+import { connect } from "@apparts/db";
+
+const dbs = await connect({
+  use: "postgresql",
+  postgresql: {
+    host: "localhost",
+    port: 5432,
+    user: "dbuser",
+    pw: "dbpassword",
+    db: "mydatabase",
+  },
+});
+
+// Query a collection
+const users = await dbs.collection("users").find({ active: true }).toArray();
+
+await dbs.shutdown();
+#+END_SRC
+
+** Configuration
+
+The ~connect~ function takes a config object specifying which database engine to use and its connection parameters.
+
+#+BEGIN_SRC typescript
+interface Config {
+  use: "postgresql"; // Database engine to use
+  postgresql: PGConfig;
+}
+#+END_SRC
+
+*** PostgreSQL Configuration
+
+#+BEGIN_SRC typescript
+interface PGConfig {
+  host: string;                    // Database host
+  port: number;                    // Database port
+  user: string;                    // Username
+  pw: string;                      // Password
+  db: string;                      // Database name
+  maxPoolSize?: number;            // Max pool size (default: 10)
+  connectionTimeoutMillis?: number; // Connection timeout (default: 0)
+  idleTimeoutMillis?: number;       // Idle timeout (default: 10000)
+  bigIntAsNumber?: boolean;         // Return BIGINT as number instead of string
+  idsAsBigInt?: boolean;           // Use BIGINT for auto-increment IDs
+  logs?: "errors";                 // Log mode: "errors" to log failed queries
+  logParams?: boolean;             // Include params in error logs
+  arrayAsJSON?: boolean;           // Store arrays as JSON strings
+  poolConfig?: PoolConfig;         // Additional pg.Pool config
+}
+#+END_SRC
+
+** API
+
+*** Database Connection (`DBS`)
+
+#+BEGIN_SRC typescript
+const dbs = await connect(config);
+#+END_SRC
+
+**** `collection(name: string): Query`
+
+Returns a ~Query~ object for the given table/collection name.
+
+**** `transaction<T>(fn: (t: Transaction) => Promise<T>): Promise<T>`
+
+Executes a function within a database transaction. Automatically commits on success or rolls back on error.
+
+#+BEGIN_SRC typescript
+const result = await dbs.transaction(async (t) => {
+  await t.collection("users").insert([{ name: "Alice" }]);
+  await t.collection("orders").insert([{ userId: 1, total: 100 }]);
+  return "success";
 });
 #+END_SRC
 
-** Raw SQL queries
+**** `raw<T>(query: string, params?: any[]): Promise<Result<T>>`
 
-#+BEGIN_SRC js
-  try {
-    const { rows } = await dbs.raw(
-      `SELECT * FROM "testTable" WHERE a = $1 AND b = $2`,
-      [1, "test"]);
-    // use data here
-  } catch (e) {
-    // handle error
-  }
+Execute a raw SQL query.
+
+#+BEGIN_SRC typescript
+const result = await dbs.raw("SELECT * FROM users WHERE active = $1", [true]);
 #+END_SRC
 
-** Query builder
+**** `createCollection(name, indexes, fields, prefix?)`
 
-#+BEGIN_SRC js
-  // insert something
-  const ids = await dbs.collection("testTable")
-        .insert([{ number: 100 }, { number: 101 }]);
-  // by default returns the "id" collumn
-  // ids[0].id -> 1
+Create a new table programmatically.
 
-
-  // insert with custom return values
-  const ids = await dbs.collection("testTable")
-        .insert([{ number: 102 }, { number: 103 }], returning = ["number"]);
-  // ids === [ { number: 102 }, { number: 103 } ]
-
-
-  // retrieve values
-  const filter = { id: { op: "in", val: [2, 3] }};
-  // see below for everything you can stick into filter and into order
-  const limit = 10, offset = 0, order = [{ key: "id", dir: "ASC" }];
-  await dbs.collection("testTable").find(filter, limit, offset, order);
-
-  // retrieve values by ids, easier
-  await dbs.collection("testTable")
-    .findByIds({ id: [ 2, 3 ]}, limit, offset, order);
-
-
-
-  // update values
-  const newContent = { number: 1000 };
-  await dbs.collection("testTable").update(filter, newContent);
-
-  // DEPRICATED, same as update:
-  await dbs.collection("testTable").updateOne(filter, newContent);
-
-
-  // delete values
-  await dbs.collection("testTable").remove(filter);
-
-
-  // drop table
-  await dbs.collection("testTable").drop();
-
+#+BEGIN_SRC typescript
+await dbs.createCollection(
+  "users",
+  [
+    { name: "id", key: ["id"] },           // Primary key
+    { name: "email", unique: true },        // Unique constraint
+    { name: "groupId", foreign: { table: "groups", field: "id" } }, // Foreign key
+  ],
+  [
+    { name: "id", type: "serial", notNull: true },
+    { name: "email", type: "text", notNull: true },
+    { name: "groupId", type: "integer" },
+    { name: "createdAt", type: "bigint" },
+  ]
+);
 #+END_SRC
 
-*** Order
+**** `shutdown(): Promise<void>`
 
-The order is given as an array of objects. The order is established,
-using the first array element. If two elements are equal according to
-that order, the next array element is used for ordering (and so on).
+Closes the database connection pool.
 
-The order array takes this form:
+*** Query
 
-#+BEGIN_SRC js
-[{ key: "<key>", dir: "ASC" | "DESC" }, ... ]
+Query objects are created via ~dbs.collection("tableName")~.
+
+**** `find(params, limit?, offset?, order?): this`
+
+Find rows matching the given parameters.
+
+#+BEGIN_SRC typescript
+// Simple equality
+await dbs.collection("users").find({ role: "admin" }).toArray();
+
+// With pagination and sorting
+await dbs.collection("users")
+  .find({ active: true }, 10, 0, [{ key: "createdAt", dir: "DESC" }])
+  .toArray();
 #+END_SRC
 
-The object can contain these keys:
-- key :: (required) The field that should be ordered
-- dir :: (required) The direction into which is ordered (ascending or descending).
-- path :: (opitonal) If =key= describes a JSON field, =path= can be used
-  to specify by which element within an JSON object should be ordered.
-  Path is then an array of strings (keys) that define the path within
-  the nested JSON object.
+**** `findById(id, limit?, offset?, order?): this`
 
-*** Filters
+Alias for ~find~.
 
-The filter is given as an object. The keys represent the column that
-the filter should be applied against. The value is either a value or
-an object that has ~op~ and ~val~ keys. ~op~ can be one of
-- ~in~ :: ~val~ then must be an array of possible values. The filter
-  accepts values that appear in the ~val~ array.
-- ~notin~ :: ~val~ then must be an array of values. The filter
-  accepts values that do not appear in the ~val~ array.
-- ~of~ :: ~val~ is an object with the keys
-  - ~path~ (an array of keys for the nested json) 
-  - ~value~, either a value to directly compare to, or another filter
-  - ~cast~ (optional), a casting operator (Postgresql only returns
-    strings for values from JSON. For numeric comparison you need to
-    cast to number). Can be ~"number"~ or ~"boolean"~.
-  #+BEGIN_SRC json
-  {
-    "op": "of",
-    "val": {
-        "path": ["<key 1>"],
-        "value": // value or filter operator here,
-        "cast": "number" | "boolean" | undefined
-    }
-  }
-  #+END_SRC
-- ~lte~ :: Less than, or equals. ~val~ must be a number, against the value
-  is combined.
-- ~lt~ :: Less than. ~val~ must be a number, against the value
-  is combined.
-- ~gte~ :: Greater than, or equals. ~val~ must be a number, against the value
-  is combined.
-- ~gt~ :: Greater than. ~val~ must be a number, against the value
-  is combined.
-- ~like~ :: Compares strings with the SQL like operator.
-- ~ilike~ :: Compares strings with the SQL like operator, case insensitive.
-- ~and~ :: Combines multiple filters and-wise. ~val~ must be an array of
-  objects, that have ~val~ and ~op~ keys of the form described here.
-- exists :: Checks if an optional field is ~null~ or not. If ~val~ is
-  ~true~, than the field must be not ~null~. If ~val~ is ~false~, than the
-  field must be ~null~;
-- oftype :: Checks the type of a JSON property. Requires a JSONB
-  column in Postgresql to work.
-   - ~path~ (an array of keys for the nested json) 
-   - ~value~, one of "object", "array", "string", "number", "boolean",
-     and "null".
-  #+BEGIN_SRC json
-  {
-    "op": "of",
-    "val": {
-        "path": ["<key 1>"],
-        "value": "object" // or any other of the valid types
-    }
-  }
-  #+END_SRC  
+**** `findByIds(ids, limit?, offset?, order?): this`
+
+Find rows where IDs match any value in the given arrays.
+
+#+BEGIN_SRC typescript
+await dbs.collection("users").findByIds({ id: [1, 2, 3] }).toArray();
+#+END_SRC
+
+**** `toArray<T>(): Promise<T[]>`
+
+Execute the query and return all matching rows.
+
+**** `count(): Promise<number>`
+
+Return the count of matching rows.
+
+#+BEGIN_SRC typescript
+const count = await dbs.collection("users").find({ active: true }).count();
+#+END_SRC
+
+**** `insert(content, returning?): Promise<Record<string, Id>[]>`
+
+Insert one or more rows.
+
+#+BEGIN_SRC typescript
+const inserted = await dbs.collection("users").insert(
+  [{ name: "Alice", email: "alice@example.com" }],
+  ["id"] // Return the generated IDs
+);
+#+END_SRC
+
+**** `update(filter, content): Promise<Result<T>>`
+
+Update all rows matching the filter.
+
+#+BEGIN_SRC typescript
+await dbs.collection("users").update(
+  { id: 1 },
+  { name: "Alice Updated" }
+);
+#+END_SRC
+
+**** `updateOne(filter, content): Promise<Result<T>>`
+
+Alias for ~update~.
+
+**** `remove(params): Promise<Result<T>>`
+
+Delete rows matching the parameters.
+
+#+BEGIN_SRC typescript
+await dbs.collection("users").remove({ id: 1 });
+#+END_SRC
+
+**** `drop(): Promise<void>`
+
+Drop the table.
+
+*** Filters and Operators
+
+The ~find~ methods accept a ~Params~ object where values can be primitives or filter operators:
+
+#+BEGIN_SRC typescript
+type Filter =
+  | { op: "and"; val: Filter[] }                    // AND multiple conditions
+  | { op: "in"; val: (string | number | boolean | null)[] } // IN operator
+  | { op: "of"; val: { path: string[]; value: Filter | primitive; cast? } } // JSONB path query
+  | { op: "oftype"; val: { path: string[]; value: type } } // JSONB type check
+  | { op: "exists"; val: boolean }                  // IS NULL / IS NOT NULL
+  | { op: "lte" | "lt" | "gte" | "gt"; val: number } // Comparison operators
+  | { op: "like" | "ilike"; val: string };          // Pattern matching
+#+END_SRC
+
+**** Examples
+
+#+BEGIN_SRC typescript
+// Range query
+await dbs.collection("products").find({
+  price: { op: "gte", val: 10 }
+}).toArray();
+
+// IN operator
+await dbs.collection("users").find({
+  role: { op: "in", val: ["admin", "moderator"] }
+}).toArray();
+
+// JSONB query (PostgreSQL)
+await dbs.collection("users").find({
+  metadata: { op: "of", val: { path: ["age"], value: 30 } }
+}).toArray();
+
+// Pattern matching (case-insensitive)
+await dbs.collection("users").find({
+  name: { op: "ilike", val: "%alice%" }
+}).toArray();
+
+// Combined conditions
+await dbs.collection("users").find({
+  age: { op: "and", val: [
+    { op: "gte", val: 18 },
+    { op: "lt", val: 65 }
+  ]}
+}).toArray();
+#+END_SRC
+
+** Transactions
+
+Use ~dbs.transaction()~ to run multiple operations atomically:
+
+#+BEGIN_SRC typescript
+await dbs.transaction(async (t) => {
+  const user = await t.collection("users").insert(
+    [{ name: "Bob", email: "bob@example.com" }],
+    ["id"]
+  );
   
-**** Filter Grammar
-
-The filter syntax is like this:
-
-#+BEGIN_SRC js
-const filter = { <key>: <matcher>, ...};
-// where <key> is a key from the type and
-// where matcher is
-<matcher> = <value>
-        | { op: <numoperator>, val: <int> }
-        | { op: <stroperator>, val: <string> }
-        | { op: "and", val: <matcher> } // logical and for all subconditions
-        | { op: "in", val: [<values>] } // one of the values
-        | { op: "of", path: [<values>], value: <string> } // match the prop of a nested JSON object
-        | { op: "exists", val: <boolean> }
-
-        
-<numoperator> = lte  // less than or equals
-              | lt   // less than
-              | gte  // greater than or equals
-              | gt   // greater than
-<stroperator> = like // sql like, a string comparison where the "%" character
-                     // will be matched against anything. E.g. "bread%crumb"
-                     // matches "bread crumb" or "bread eating crumb".
-<value> = <string>
-        | <int>
-        | <boolean>
-        | null
-<values> = <value>, <values>
-         |  // nothing
+  await t.collection("profiles").insert([{
+    userId: user[0].id,
+    bio: "Hello!"
+  }]);
+});
+// Automatically commits if no error, rolls back otherwise
 #+END_SRC
 
+** Error Handling
+
+Insert and update operations return structured errors for common constraint violations:
+
+| Code | Meaning |
+|------|---------|
+| ~1~  | Unique constraint violation |
+| ~2~  | Foreign key constraint violation (on delete) |
+| ~3~  | Check/foreign key constraint violation (on insert) |
+
+#+BEGIN_SRC typescript
+import { connect } from "@apparts/db";
+
+try {
+  await dbs.collection("users").insert([{ email: "duplicate@example.com" }]);
+} catch (e: any) {
+  if (e._code === 1) {
+    console.log("Duplicate entry");
+  }
+}
+#+END_SRC
+
+** License
+
+MIT
