@@ -245,6 +245,7 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
       { id: "x2", number: 5, tag: "b" },
       { id: "x3", number: 10, tag: "c" },
       { id: "x4", number: 20 }, // tag is absent
+      { id: "x5", number: 25, tag: null }, // tag is explicitly NULL-typed
     ]);
   }, 60000);
   afterAll(async () => {
@@ -270,8 +271,8 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
     expect(await ids({ tag: { op: "exists", val: false } })).toEqual(["x4"]);
   });
 
-  test("null shorthand matches rows where the attribute is absent", async () => {
-    expect(await ids(p({ tag: null }))).toEqual(["x4"]);
+  test("null shorthand matches rows where the attribute is absent or explicitly set to null", async () => {
+    expect(await ids(p({ tag: null }))).toEqual(["x4", "x5"]);
   });
 
   test("in / notin on a non-PK attribute", async () => {
