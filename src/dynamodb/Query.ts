@@ -188,6 +188,9 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
     clauses.push(r.expr);
   }
   if (clauses.length === 0) {
+    // All clauses were always_true (or there were no clauses) — collapse
+    // to "empty" so the caller emits no FilterExpression. A Scan with no
+    // FilterExpression matches every row, which is what always_true means.
     return { kind: "empty" };
   }
   return {
@@ -244,7 +247,12 @@ class Query extends GenericQuery {
     }
     if (offset && offset > 0) {
       throw new NotSupportedByDBEngine(
-        "Query.find: numeric offset is not supported by DynamoDB; use paginated ExclusiveStartKey instead."
+        "Query.find: numeric offset is not supported by DynamoDB. " +
+          "DynamoDB Scan/Query has no SKIP semantics — paginate with " +
+          "limit-only and either (a) re-run the query with a tighter " +
+          "filter on the next page's first key, or (b) call findByIds " +
+          "with a known id list, or (c) fetch with limit and slice " +
+          "client-side for small result sets."
       );
     }
     this._state = { params, limit, offset, order };
