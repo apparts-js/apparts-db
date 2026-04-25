@@ -22,7 +22,7 @@ describe("Log on error behavior", () => {
       {
         logs: "errors",
         logParams: true,
-      } as unknown as PGConfig
+      } as unknown as PGConfig,
     );
   });
   afterEach(() => {
@@ -34,11 +34,11 @@ describe("Log on error behavior", () => {
     t._dbs = { query };
 
     await expect(t.updateOne({ number: 100 }, { number: 1000 })).rejects.toBe(
-      e
+      e,
     );
     expect(logMock.mock.calls).toEqual([
       [
-        "Error in updateOne:",
+        "Error in update:",
         "\nQUERY:\n",
         `UPDATE "testTable" SET "number" = $1 WHERE "number" = $2`,
         "\nPARAMS:\n",
@@ -205,12 +205,12 @@ afterAll(async () => {
 describe("Insert", () => {
   it("Should insert nothing", async () => {
     await expect(dbs.collection("testTable").insert([])).resolves.toMatchObject(
-      []
+      [],
     );
   });
   it("Should insert one thing", async () => {
     await expect(
-      dbs.collection("testTable").insert([{ number: 100 }])
+      dbs.collection("testTable").insert([{ number: 100 }]),
     ).resolves.toMatchObject([{ id: 1 }]);
   });
 
@@ -219,12 +219,12 @@ describe("Insert", () => {
       dbs.collection("testTable").insert([
         { number: 101, text: "ballaBalla" },
         { number: 102, text: "foo bar" },
-      ])
+      ]),
     ).resolves.toMatchObject([{ id: 2 }, { id: 3 }]);
   });
   it("Should fail to insert non-unique content", async () => {
     await expect(
-      dbs.collection("testTable").insert([{ number: 100, id: 1 }])
+      dbs.collection("testTable").insert([{ number: 100, id: 1 }]),
     ).rejects.toMatchObject({
       msg: "ERROR, tried to insert, not unique",
       _code: 1,
@@ -232,13 +232,13 @@ describe("Insert", () => {
   });
   it("Should fail to insert with unmet foreign constraint", async () => {
     await expect(
-      dbs.collection("testTable2").insert([{ testTableId: 10000 }])
+      dbs.collection("testTable2").insert([{ testTableId: 10000 }]),
     ).rejects.toMatchObject({
       msg: "ERROR, tried to insert, constraints not met",
       _code: 3,
     });
     await expect(
-      dbs.collection("testTable2").find({}).toArray()
+      dbs.collection("testTable2").find({}).toArray(),
     ).resolves.toStrictEqual([]);
   });
   it("Should insert json", async () => {
@@ -252,11 +252,11 @@ describe("Insert", () => {
             aString: "Abc",
           },
         },
-      ])
+      ]),
     ).resolves.toStrictEqual([{ id: 1 }]);
 
     await expect(
-      dbs.collection("testTable3").insert([{ object1: { tokens: "abc" } }])
+      dbs.collection("testTable3").insert([{ object1: { tokens: "abc" } }]),
     ).resolves.toStrictEqual([{ id: 2 }]);
   });
 });
@@ -264,30 +264,30 @@ describe("Insert", () => {
 describe("Find / findById", () => {
   it("Should findById", async () => {
     await expect(
-      dbs.collection("testTable").findById({ id: 1 }).toArray()
+      dbs.collection("testTable").findById({ id: 1 }).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
   it("Should findById nothing", async () => {
     await expect(
-      dbs.collection("testTable").findById({ id: 100 }).toArray()
+      dbs.collection("testTable").findById({ id: 100 }).toArray(),
     ).resolves.toMatchObject([]);
   });
 
   it("Should findById with multiple keys given", async () => {
     await expect(
-      dbs.collection("testTable").findById({ id: 1, number: 100 }).toArray()
+      dbs.collection("testTable").findById({ id: 1, number: 100 }).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
 
   it("Should findById nothing with multiple keys", async () => {
     await expect(
-      dbs.collection("testTable").findById({ id: 1, number: 101 }).toArray()
+      dbs.collection("testTable").findById({ id: 1, number: 101 }).toArray(),
     ).resolves.toMatchObject([]);
   });
 
   it("Should findById everything", async () => {
     await expect(
-      dbs.collection("testTable").findById({}).toArray()
+      dbs.collection("testTable").findById({}).toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -297,13 +297,13 @@ describe("Find / findById", () => {
 
   it("Should findById with limit", async () => {
     await expect(
-      dbs.collection("testTable").findById({}, 1).toArray()
+      dbs.collection("testTable").findById({}, 1).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
 
   it("Should findById with limit and offset", async () => {
     await expect(
-      dbs.collection("testTable").findById({}, 1, 1).toArray()
+      dbs.collection("testTable").findById({}, 1, 1).toArray(),
     ).resolves.toMatchObject([{ id: 2, number: 101 }]);
   });
 });
@@ -314,13 +314,13 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "in", val: [] } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([]);
     await expect(
       dbs
         .collection("testTable")
         .findById({ number: { op: "in", val: [101, 102] } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 2, number: 101 },
       { id: 3, number: 102 },
@@ -332,7 +332,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "notin", val: [102] } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -342,7 +342,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "notin", val: [] } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -355,7 +355,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "gt", val: 100 } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 2, number: 101 },
       { id: 3, number: 102 },
@@ -367,7 +367,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "lt", val: 102 } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -379,7 +379,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "gte", val: 101 } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 2, number: 101 },
       { id: 3, number: 102 },
@@ -390,7 +390,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .findById({ number: { op: "lte", val: 101 } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -401,7 +401,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .find({ text: { op: "like", val: "%Ba%" } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 2, text: "ballaBalla" }]);
   });
 
@@ -410,7 +410,7 @@ describe("Filters", () => {
       dbs
         .collection("testTable")
         .find({ text: { op: "ilike", val: "%Ba%" } })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 2, text: "ballaBalla" },
       { id: 3, text: "foo bar" },
@@ -430,7 +430,7 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, object1: { object2: { tokens: "abc" } } },
     ]);
@@ -448,7 +448,7 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
   });
   it("Should fail to find with of operator, no level deep", async () => {
@@ -468,7 +468,7 @@ describe("Filters", () => {
         })
         .toArray();
     }).rejects.toThrow(
-      "ERROR, JSON path requires at least one path element. You submitted []."
+      "ERROR, JSON path requires at least one path element. You submitted [].",
     );
   });
   it("Should find with of operator, with sub operator", async () => {
@@ -484,7 +484,7 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 2, object1: { tokens: "abc" } }]);
   });
 
@@ -514,7 +514,7 @@ describe("Filters", () => {
             ],
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ object1: { aNumber: 333 } }]);
   });
 
@@ -531,7 +531,7 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toStrictEqual([{ id: 2, object1: { tokens: "abc" } }]);
     await expect(
       dbs
@@ -545,7 +545,7 @@ describe("Filters", () => {
             },
           },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toStrictEqual([]);
   });
   it("Should find null value", async () => {
@@ -566,7 +566,7 @@ describe("Filters", () => {
           number: 1337,
           optionalVal: null,
         })
-        .toArray()
+        .toArray(),
     ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
 
     await expect(
@@ -576,7 +576,7 @@ describe("Filters", () => {
           number: 1337,
           optionalVal: { op: "exists", val: false },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toStrictEqual([{ id: 2, number: 1337, optionalVal: null }]);
   });
 
@@ -588,7 +588,7 @@ describe("Filters", () => {
           number: 1337,
           optionalVal: { op: "exists", val: true },
         })
-        .toArray()
+        .toArray(),
     ).resolves.toStrictEqual([{ id: 1, number: 1337, optionalVal: 7 }]);
   });
 });
@@ -598,12 +598,12 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
   it("Should findByIds without array", async () => {
     await expect(
-      dbs.collection("testTable").findByIds({ id: 1 }).toArray()
+      dbs.collection("testTable").findByIds({ id: 1 }).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
   it("Should findByIds nothing without array", async () => {
@@ -611,7 +611,7 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [100] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([]);
   });
   it("Should findByIds with multiple arrays", async () => {
@@ -619,7 +619,7 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1], number: [100] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
   it("Should findByIds nothing with multiple arrays", async () => {
@@ -627,12 +627,12 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1], number: [101] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([]);
   });
   it("Should findByIds everything", async () => {
     await expect(
-      dbs.collection("testTable").findByIds({}).toArray()
+      dbs.collection("testTable").findByIds({}).toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -644,7 +644,7 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 100 },
       { id: 2, number: 101 },
@@ -656,7 +656,7 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3] }, 1)
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
   it("Should findByIds with array with multiple ids and limit and offset", async () => {
@@ -664,12 +664,12 @@ describe("FindByIds", () => {
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3] }, 1, 1)
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([{ id: 2, number: 101 }]);
   });
   it("Should findByIds with empty array", async () => {
     await expect(
-      dbs.collection("testTable").findByIds({ id: [] }).toArray()
+      dbs.collection("testTable").findByIds({ id: [] }).toArray(),
     ).resolves.toMatchObject([]);
   });
 });
@@ -677,14 +677,14 @@ describe("FindByIds", () => {
 describe("Find ordered", () => {
   it("Should find in desc order", async () => {
     await expect(
-      dbs.collection("testTable").insert([{ number: 100 }])
+      dbs.collection("testTable").insert([{ number: 100 }]),
     ).resolves.toMatchObject([{ id: 4 }]);
 
     await expect(
       dbs
         .collection("testTable")
         .findById({}, null, null, [{ key: "id", dir: "DESC" }])
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 4, number: 100 },
       { id: 3, number: 102 },
@@ -700,7 +700,7 @@ describe("Find ordered", () => {
           { key: "number", dir: "ASC" },
           { key: "id", dir: "DESC" },
         ])
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 4, number: 100 },
       { id: 1, number: 100 },
@@ -719,20 +719,20 @@ describe("Count", () => {
 describe("Update", () => {
   it("Should updateOne", async () => {
     await expect(
-      dbs.collection("testTable").updateOne({ number: 100 }, { number: 1000 })
+      dbs.collection("testTable").updateOne({ number: 100 }, { number: 1000 }),
     ).resolves.toMatchObject({ rowCount: 2 });
 
     await expect(
       dbs
         .collection("testTable")
-        .updateOne({ number: 101, id: 2 }, { number: 3000, id: 5 })
+        .updateOne({ number: 101, id: 2 }, { number: 3000, id: 5 }),
     ).resolves.toMatchObject({ rowCount: 1 });
 
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3, 4, 5] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 1000 },
       { id: 3, number: 102 },
@@ -742,14 +742,14 @@ describe("Update", () => {
   });
   it("Should updateOne all", async () => {
     await expect(
-      dbs.collection("testTable").updateOne({}, { number: 2000 })
+      dbs.collection("testTable").updateOne({}, { number: 2000 }),
     ).resolves.toMatchObject({ rowCount: 4 });
 
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 5, 3] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 2000 },
       { id: 3, number: 2000 },
@@ -758,7 +758,7 @@ describe("Update", () => {
   });
   it("Should fail to updateOne due to uniqueness constraint", async () => {
     await expect(
-      dbs.collection("testTable").updateOne({}, { id: 1 })
+      dbs.collection("testTable").updateOne({}, { id: 1 }),
     ).rejects.toMatchObject({
       msg: "ERROR, tried to update, not unique",
       _code: 1,
@@ -769,14 +769,14 @@ describe("Update", () => {
 describe("Remove", () => {
   it("Should remove", async () => {
     await expect(
-      dbs.collection("testTable").remove({ number: 2000, id: 5 })
+      dbs.collection("testTable").remove({ number: 2000, id: 5 }),
     ).resolves.toMatchObject({ rowCount: 1 });
 
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3, 5] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 1, number: 2000 },
       { id: 3, number: 2000 },
@@ -784,34 +784,34 @@ describe("Remove", () => {
   });
   it("Should fail to remove due to foreign key constraint", async () => {
     await expect(
-      dbs.collection("testTable2").insert([{ testTableId: 3 }])
+      dbs.collection("testTable2").insert([{ testTableId: 3 }]),
     ).resolves.toMatchObject([{ id: 2 }]);
 
     await expect(
-      dbs.collection("testTable").remove({ number: 2000 })
+      dbs.collection("testTable").remove({ number: 2000 }),
     ).rejects.toMatchObject({
       msg: "ERROR, tried to remove item that is still a reference",
       _code: 2,
     });
 
     await expect(
-      dbs.collection("testTable2").remove({})
+      dbs.collection("testTable2").remove({}),
     ).resolves.toMatchObject({ rowCount: 1 });
 
     await expect(
-      dbs.collection("testTable").remove({ number: 2000 })
+      dbs.collection("testTable").remove({ number: 2000 }),
     ).resolves.toMatchObject({ rowCount: 3 });
 
     await expect(
       dbs
         .collection("testTable")
         .findByIds({ id: [1, 2, 3, 4] })
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([]);
   });
   it("Should remove nothing", async () => {
     await expect(
-      dbs.collection("testTable").remove({ number: 2000 })
+      dbs.collection("testTable").remove({ number: 2000 }),
     ).resolves.toMatchObject({ rowCount: 0 });
   });
 });
@@ -819,13 +819,13 @@ describe("Remove", () => {
 describe("Table", () => {
   it("Should drop", async () => {
     await expect(dbs.collection("testTable2").drop()).resolves.toMatchObject(
-      {}
+      {},
     );
     const logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // nothign
     });
     await expect(
-      dbs.collection("testTable2").findByIds({}).toArray()
+      dbs.collection("testTable2").findByIds({}).toArray(),
     ).rejects.toMatchObject({ code: "42P01" });
     logMock.mockRestore();
   });
@@ -851,18 +851,18 @@ CREATE TABLE "testJson" (
     await expect(
       dbs
         .collection("testJson")
-        .insert([{ jsonField: { a: 1 }, jsonArray: [1, 2, 3] }])
+        .insert([{ jsonField: { a: 1 }, jsonArray: [1, 2, 3] }]),
     ).resolves.toMatchObject([{ id: 1 }]);
   });
   it("Should update/updateOne", async () => {
     await expect(
-      dbs.collection("testJson").updateOne({ id: 1 }, { jsonArray: [1, 2, 4] })
+      dbs.collection("testJson").updateOne({ id: 1 }, { jsonArray: [1, 2, 4] }),
     ).resolves.toMatchObject({ rowCount: 1 });
   });
 
   it("Should find", async () => {
     await expect(
-      dbs.collection("testJson").find({}).toArray()
+      dbs.collection("testJson").find({}).toArray(),
     ).resolves.toMatchObject([
       { id: 1, jsonArray: [1, 2, 4], jsonField: { a: 1 } },
     ]);
@@ -890,7 +890,7 @@ CREATE TABLE "testJson" (
             dir: "ASC",
           },
         ])
-        .toArray()
+        .toArray(),
     ).resolves.toMatchObject([
       { id: 2, jsonField: { field: { subfield: 1 } } },
       { id: 4, jsonField: { field: { subfield: 343 } } },
@@ -923,7 +923,7 @@ CREATE TABLE "testNonJson" (
     await expect(
       dbs
         .collection("testNonJson")
-        .insert([{ jsonField: { a: 1 }, nonJsonArray: [1, 2, 3] }])
+        .insert([{ jsonField: { a: 1 }, nonJsonArray: [1, 2, 3] }]),
     ).resolves.toMatchObject([{ id: 1 }]);
   });
 
@@ -931,13 +931,13 @@ CREATE TABLE "testNonJson" (
     await expect(
       dbs
         .collection("testNonJson")
-        .updateOne({ id: 1 }, { nonJsonArray: [1, 2, 4] })
+        .updateOne({ id: 1 }, { nonJsonArray: [1, 2, 4] }),
     ).resolves.toMatchObject({ rowCount: 1 });
   });
 
   it("Should find", async () => {
     await expect(
-      dbs.collection("testNonJson").find({}).toArray()
+      dbs.collection("testNonJson").find({}).toArray(),
     ).resolves.toMatchObject([
       { id: 1, nonJsonArray: [1, 2, 4], jsonField: { a: 1 } },
     ]);
