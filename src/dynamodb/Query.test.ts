@@ -117,13 +117,20 @@ runOrSkip("DynamoDB Query CRUD", () => {
     expect(rows).toEqual([{ id: "a", number: 43 }]);
   });
 
-  test("remove deletes matching items", async () => {
+  test("remove deletes matching items and leaves siblings untouched", async () => {
     await dbs.collection(TEST_TABLE).remove({ id: "b" });
-    const rows = await dbs
+    const removed = await dbs
       .collection(TEST_TABLE)
       .findById({ id: "b" })
       .toArray();
-    expect(rows).toEqual([]);
+    expect(removed).toEqual([]);
+    // Sibling id "a" must still be present — remove must not nuke
+    // anything other than id "b".
+    const sibling = await dbs
+      .collection(TEST_TABLE)
+      .findById({ id: "a" })
+      .toArray<{ id: string }>();
+    expect(sibling.map((r) => r.id)).toEqual(["a"]);
   });
 
   test("remove by id-array deletes multiple items in one call", async () => {
