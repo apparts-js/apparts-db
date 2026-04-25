@@ -313,6 +313,62 @@ class Query extends GenericQuery {
       });
   }
 
+  async insertOrUpdate(content: any[], returning = ["id"]) {
+    if (content.length === 0) {
+      return Promise.resolve([]);
+    }
+    let q = `INSERT INTO "${this._table}" `;
+    const keys = Object.keys(content[0]);
+    q += "(" + keys.map((key) => `"${key}"`).join(",") + ")";
+    q += " VALUES ";
+    q += content
+      .map(
+        (_, i) =>
+          "(" +
+          keys.map((_, j) => `$${i * keys.length + (j + 1)}`).join(",") +
+          ")"
+      )
+      .join(",");
+    // Upsert: on PK conflict, update the non-PK columns from EXCLUDED.
+    // Assumes "id" is the PK column — matches the convention used by
+    // insert/update/remove elsewhere in this driver.
+    const updateCols = keys.filter((k) => k !== "id");
+    if (updateCols.length > 0) {
+      q +=
+        ' ON CONFLICT ("id") DO UPDATE SET ' +
+        updateCols.map((k) => `"${k}" = EXCLUDED."${k}"`).join(",");
+    } else {
+      // All columns are the PK — nothing to update; treat the duplicate
+      // as a no-op rather than a constraint violation.
+      q += ' ON CONFLICT ("id") DO NOTHING';
+    }
+    if (returning && returning.length > 0) {
+      q += " RETURNING " + returning.map((r) => `"${r}"`).join(",");
+    }
+    const params = [].concat(
+      ...content.map((c) =>
+        keys.map((k) =>
+          Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]
+        )
+      )
+    );
+    return this._dbs
+      .query(q, params)
+      .then((res) => {
+        return Promise.resolve(res.rows);
+      })
+      .catch((err) => {
+        if (err.code === "23503" || err.code === "23514") {
+          return Promise.reject({
+            msg: "ERROR, tried to insert, constraints not met",
+            _code: 3,
+          });
+        }
+        this._log("Error in insertOrUpdate:", q, params, err);
+        return Promise.reject(err);
+      });
+  }
+
   async updateOne(filter: Params, c: { [p: string]: any }) {
     return this.update(filter, c);
   }

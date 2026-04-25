@@ -158,10 +158,8 @@ runOrSkip("DynamoDB Transaction", () => {
   });
 
   test("transaction rollback undoes update and remove staged in the same tx", async () => {
-    await dbs.collection(TEST_TABLE).insert([
-      { id: "tx-roll-upd", number: 1 },
-      { id: "tx-roll-rm", number: 1 },
-    ]);
+    await dbs.collection(TEST_TABLE).insert([{ id: "tx-roll-upd", number: 1 }]);
+    await dbs.collection(TEST_TABLE).insert([{ id: "tx-roll-rm", number: 1 }]);
     await expect(
       dbs.transaction(async (t) => {
         await t

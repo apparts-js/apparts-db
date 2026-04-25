@@ -109,6 +109,36 @@ class TransactionQuery extends Query {
     });
   }
 
+  async insertOrUpdate(
+    content: Record<string, unknown>[],
+    returning: string[] = [PK]
+  ): Promise<Record<string, Id>[]> {
+    if (content.length === 0) return [];
+    const missingKey = content.findIndex(
+      (item) => item[PK] === undefined || item[PK] === null
+    );
+    if (missingKey !== -1) {
+      throw new NotSupportedByDBEngine(
+        `Query.insertOrUpdate: DynamoDB does not auto-generate primary keys; item at index ${missingKey} is missing "${PK}".`
+      );
+    }
+    for (const Item of content) {
+      this._writes.push({
+        Put: {
+          TableName: this._table,
+          Item,
+        },
+      });
+    }
+    return content.map((item) => {
+      const r: Record<string, Id> = {};
+      for (const key of returning) {
+        r[key] = item[key] as Id;
+      }
+      return r;
+    });
+  }
+
   async update<T>(
     filter: Params,
     c: { [p: string]: unknown }

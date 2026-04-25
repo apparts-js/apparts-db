@@ -394,33 +394,38 @@ class Query extends GenericQuery {
   ): Promise<Record<string, Id>[]> {
     if (content.length === 0) return [];
 
-    const missingKey = content.findIndex(
-      (item) => item[PK] === undefined || item[PK] === null
-    );
-    if (missingKey !== -1) {
+    // DynamoDB has no atomic multi-row PutItem, and individual Puts can
+    // partially fail in unpredictable ways. Rather than expose the user
+    // to that, only allow single-row insert here — multi-row callers must
+    // either loop themselves, use insertOrUpdate (which has no uniqueness
+    // contract to violate), or stage writes inside a Transaction.
+    if (content.length > 1) {
       throw new NotSupportedByDBEngine(
-        `Query.insert: DynamoDB does not auto-generate primary keys; item at index ${missingKey} is missing "${PK}".`
+        "Query.insert: multi-row insert is not supported by DynamoDB " +
+          "(no atomic multi-row Put). Insert one row at a time, use " +
+          "insertOrUpdate for upsert semantics, or stage the writes in " +
+          "a transaction for atomicity."
       );
     }
 
-    // Use PutCommand with attribute_not_exists condition per item so that
-    // duplicate primary keys surface as `{_code: 1}`, matching the Postgres
-    // driver's 23505 translation. DynamoDB's BatchWriteCommand does not
-    // accept ConditionExpression, so we issue individual Puts in parallel.
-    // Multi-item inserts are therefore not atomic - use a transaction if
-    // atomicity is required.
+    const Item = content[0];
+    if (Item[PK] === undefined || Item[PK] === null) {
+      throw new NotSupportedByDBEngine(
+        `Query.insert: DynamoDB does not auto-generate primary keys; item is missing "${PK}".`
+      );
+    }
+
+    // PutCommand with attribute_not_exists so a duplicate primary key
+    // surfaces as `{_code: 1}`, matching the Postgres driver's 23505
+    // translation.
     try {
-      await Promise.all(
-        content.map((Item) =>
-          this._client.send(
-            new PutCommand({
-              TableName: this._table,
-              Item,
-              ConditionExpression: "attribute_not_exists(#pk)",
-              ExpressionAttributeNames: { "#pk": PK },
-            })
-          )
-        )
+      await this._client.send(
+        new PutCommand({
+          TableName: this._table,
+          Item,
+          ConditionExpression: "attribute_not_exists(#pk)",
+          ExpressionAttributeNames: { "#pk": PK },
+        })
       );
     } catch (e) {
       if (isConditionalCheckFailed(e)) {
@@ -430,6 +435,47 @@ class Query extends GenericQuery {
         });
       }
       this._log("Error in insert:", "PutItem", { content }, e);
+      throw e;
+    }
+
+    const r: Record<string, Id> = {};
+    for (const key of returning) {
+      r[key] = Item[key] as Id;
+    }
+    return [r];
+  }
+
+  async insertOrUpdate(
+    content: Record<string, unknown>[],
+    returning: string[] = [PK]
+  ): Promise<Record<string, Id>[]> {
+    if (content.length === 0) return [];
+
+    const missingKey = content.findIndex(
+      (item) => item[PK] === undefined || item[PK] === null
+    );
+    if (missingKey !== -1) {
+      throw new NotSupportedByDBEngine(
+        `Query.insertOrUpdate: DynamoDB does not auto-generate primary keys; item at index ${missingKey} is missing "${PK}".`
+      );
+    }
+
+    // Plain PutCommand with no ConditionExpression — overwrites on
+    // duplicate primary key. Multi-row callers get parallel Puts; the
+    // overall operation is non-atomic, but each individual upsert is.
+    try {
+      await Promise.all(
+        content.map((Item) =>
+          this._client.send(
+            new PutCommand({
+              TableName: this._table,
+              Item,
+            })
+          )
+        )
+      );
+    } catch (e) {
+      this._log("Error in insertOrUpdate:", "PutItem", { content }, e);
       throw e;
     }
 

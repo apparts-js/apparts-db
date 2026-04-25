@@ -33,17 +33,25 @@ runOrSkip("DynamoDB Query CRUD", () => {
     await dropTable(TEST_TABLE);
   }, 60000);
 
-  test("insert returns the primary key of inserted items", async () => {
-    const ids = await dbs.collection(TEST_TABLE).insert([
-      { id: "a", number: 1 },
-      { id: "b", number: 2 },
-    ]);
-    expect(ids.map((r) => r.id).sort()).toEqual(["a", "b"]);
+  test("insert returns the primary key of the inserted item", async () => {
+    const aIds = await dbs
+      .collection(TEST_TABLE)
+      .insert([{ id: "a", number: 1 }]);
+    const bIds = await dbs
+      .collection(TEST_TABLE)
+      .insert([{ id: "b", number: 2 }]);
+    expect([...aIds, ...bIds].map((r) => r.id).sort()).toEqual(["a", "b"]);
   });
 
   test("insert of an empty array is a no-op", async () => {
     const ids = await dbs.collection(TEST_TABLE).insert([]);
     expect(ids).toEqual([]);
+  });
+
+  test("multi-row insert throws NotSupportedByDBEngine", async () => {
+    await expect(
+      dbs.collection(TEST_TABLE).insert([{ id: "multi-1" }, { id: "multi-2" }])
+    ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
   test("findById returns an inserted item", async () => {
@@ -134,9 +142,9 @@ runOrSkip("DynamoDB Query CRUD", () => {
   });
 
   test("remove by id-array deletes multiple items in one call", async () => {
-    await dbs
-      .collection(TEST_TABLE)
-      .insert([{ id: "batch-1" }, { id: "batch-2" }, { id: "batch-3" }]);
+    for (const id of ["batch-1", "batch-2", "batch-3"]) {
+      await dbs.collection(TEST_TABLE).insert([{ id }]);
+    }
     const res = await dbs
       .collection(TEST_TABLE)
       .remove({ id: ["batch-1", "batch-2", "batch-3"] });
@@ -155,7 +163,8 @@ runOrSkip("DynamoDB Query CRUD", () => {
 
   test("remove with >25 ids exercises the 25-item chunking loop", async () => {
     const ids = Array.from({ length: 26 }, (_, i) => `chunk-${i}`);
-    await dbs.collection(TEST_TABLE).insert(ids.map((id) => ({ id })));
+    // insertOrUpdate accepts multi-row payloads; insert is single-row only.
+    await dbs.collection(TEST_TABLE).insertOrUpdate(ids.map((id) => ({ id })));
     const res = await dbs.collection(TEST_TABLE).remove({ id: ids });
     expect(res.rowCount).toBe(26);
     const remaining = await dbs
@@ -181,6 +190,34 @@ runOrSkip("DynamoDB Query CRUD", () => {
     expect(rows).toEqual([{ id: "dup", number: 1 }]);
   });
 
+  test("insertOrUpdate overwrites existing rows and accepts multi-row payloads", async () => {
+    await dbs.collection(TEST_TABLE).insertOrUpdate([
+      { id: "ups-1", number: 1 },
+      { id: "ups-2", number: 2 },
+    ]);
+    // Re-running insertOrUpdate with new values must not throw on the
+    // duplicate key; it overwrites the prior row instead.
+    await dbs.collection(TEST_TABLE).insertOrUpdate([
+      { id: "ups-1", number: 11 },
+      { id: "ups-2", number: 22 },
+    ]);
+    const rows = await dbs
+      .collection(TEST_TABLE)
+      .findByIds({ id: ["ups-1", "ups-2"] })
+      .toArray<{ id: string; number: number }>();
+    const byId = new Map(rows.map((r) => [r.id, r.number]));
+    expect(byId.get("ups-1")).toBe(11);
+    expect(byId.get("ups-2")).toBe(22);
+  });
+
+  test("insertOrUpdate without a primary key throws NotSupportedByDBEngine", async () => {
+    await expect(
+      dbs
+        .collection(TEST_TABLE)
+        .insertOrUpdate([{ number: 1 } as Record<string, unknown>])
+    ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
+  });
+
   test("update of a non-existent row returns rowCount: 0", async () => {
     const res = await dbs
       .collection(TEST_TABLE)
@@ -202,7 +239,8 @@ runOrSkip("DynamoDB Query filter operators via Scan", () => {
   beforeAll(async () => {
     await ensureTable(FLT_TABLE);
     dbs = await connectDynamo(buildConfig());
-    await dbs.collection(FLT_TABLE).insert([
+    // insertOrUpdate accepts multi-row payloads; insert is single-row only.
+    await dbs.collection(FLT_TABLE).insertOrUpdate([
       { id: "x1", number: 1, tag: "a" },
       { id: "x2", number: 5, tag: "b" },
       { id: "x3", number: 10, tag: "c" },
