@@ -1,12 +1,20 @@
 import * as http from "http";
 
-const shouldRun = process.env.DB_ENGINE === "dynamodb";
-const runOrSkip = shouldRun ? describe : describe.skip;
+const endpointHost = process.env.DYNAMODB_TEST_CONFIG
+  ? (JSON.parse(
+      Buffer.from(process.env.DYNAMODB_TEST_CONFIG, "base64").toString("utf-8"),
+    ).endpoint?.replace(/^https?:\/\//, "") ?? "localhost")
+  : process.env.DYNAMODB_HOST || "localhost";
 
-const endpointHost = process.env.DYNAMODB_HOST || "localhost";
-const endpointPort = Number(process.env.DYNAMODB_PORT) || 8000;
+const endpointPort = process.env.DYNAMODB_TEST_CONFIG
+  ? (JSON.parse(
+      Buffer.from(process.env.DYNAMODB_TEST_CONFIG, "base64").toString("utf-8"),
+    )
+      .endpoint?.split(":")
+      ?.pop() ?? 8000)
+  : Number(process.env.DYNAMODB_PORT) || 8000;
 
-runOrSkip("DynamoDB Local connectivity", () => {
+describe("DynamoDB Local connectivity", () => {
   test("reaches the DynamoDB Local endpoint", async () => {
     await new Promise<void>((resolve, reject) => {
       const req = http.request(
@@ -23,7 +31,7 @@ runOrSkip("DynamoDB Local connectivity", () => {
           } else {
             reject(new Error("No status code received from DynamoDB Local"));
           }
-        }
+        },
       );
       req.on("error", reject);
       req.setTimeout(5000, () => {

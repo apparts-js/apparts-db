@@ -6,7 +6,7 @@ export abstract class Queriable extends GenericQueriable {
 
   newId(): Id {
     throw new NotSupportedByDBEngine(
-      "Queriable.newId: DynamoDB does not auto-generate primary keys; supply your own id on every insert."
+      "Queriable.newId: DynamoDB does not auto-generate primary keys; supply your own id on every insert.",
     );
   }
 
@@ -22,7 +22,7 @@ export abstract class Queriable extends GenericQueriable {
     message: string,
     operation: string,
     params: unknown,
-    error: unknown
+    error: unknown,
   ) {
     if (this._config.logs === "errors") {
       if (this._config.logParams) {
@@ -33,7 +33,7 @@ export abstract class Queriable extends GenericQueriable {
           "\nPARAMS:\n",
           params,
           "\nERROR:\n",
-          error
+          error,
         );
       } else {
         console.log(message, "\nOPERATION:\n", operation, "\nERROR:\n", error);

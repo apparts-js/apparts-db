@@ -10,14 +10,21 @@ import {
 
 import { connectDynamo, DynamoConfig } from "../dynamodb";
 
-const buildConfig = (): DynamoConfig => ({
-  region: "local",
-  endpoint: `http://${process.env.DYNAMODB_HOST || "localhost"}:${
-    process.env.DYNAMODB_PORT || "8000"
-  }`,
-  accessKeyId: "local",
-  secretAccessKey: "local",
-});
+export const buildConfig = (): DynamoConfig => {
+  if (process.env.DYNAMODB_TEST_CONFIG) {
+    return JSON.parse(
+      Buffer.from(process.env.DYNAMODB_TEST_CONFIG, "base64").toString("utf-8"),
+    );
+  }
+  return {
+    region: "local",
+    endpoint: `http://${process.env.DYNAMODB_HOST || "localhost"}:${
+      process.env.DYNAMODB_PORT || "8000"
+    }`,
+    accessKeyId: "local",
+    secretAccessKey: "local",
+  };
+};
 
 const rawClient = () =>
   new DynamoDBClient({
@@ -38,7 +45,7 @@ export const ensureTable = async (tableName: string) => {
       await client.send(new DeleteTableCommand({ TableName: tableName }));
       await waitUntilTableNotExists(
         { client, maxWaitTime: WAIT_SECONDS },
-        { TableName: tableName }
+        { TableName: tableName },
       );
     } catch (e) {
       if (!(e instanceof ResourceNotFoundException)) throw e;
@@ -49,11 +56,11 @@ export const ensureTable = async (tableName: string) => {
         AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
         KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
         BillingMode: "PAY_PER_REQUEST",
-      })
+      }),
     );
     await waitUntilTableExists(
       { client, maxWaitTime: WAIT_SECONDS },
-      { TableName: tableName }
+      { TableName: tableName },
     );
   } finally {
     client.destroy();
@@ -71,7 +78,7 @@ export const dropTable = async (tableName: string) => {
     }
     await waitUntilTableNotExists(
       { client, maxWaitTime: WAIT_SECONDS },
-      { TableName: tableName }
+      { TableName: tableName },
     );
   } finally {
     client.destroy();

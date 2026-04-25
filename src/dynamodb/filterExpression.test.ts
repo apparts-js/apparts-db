@@ -60,7 +60,7 @@ describe("buildFilterExpression", () => {
       p({
         tag: { op: "notin", val: [] },
         foo: "x",
-      })
+      }),
     );
     expect(r.kind).toBe("expr");
     if (r.kind !== "expr") return;
@@ -116,7 +116,7 @@ describe("buildFilterExpression", () => {
 
   test("notin non-empty renders NOT (... IN ...)", () => {
     const r = buildFilterExpression(
-      p({ tag: { op: "notin", val: ["a", "b"] } })
+      p({ tag: { op: "notin", val: ["a", "b"] } }),
     );
     expect(r.kind).toBe("expr");
     if (r.kind !== "expr") return;
@@ -162,7 +162,7 @@ describe("buildFilterExpression", () => {
             { op: "gt", val: 1 },
           ],
         },
-      })
+      }),
     );
     expect(r.kind).toBe("expr");
     if (r.kind !== "expr") return;
@@ -171,26 +171,26 @@ describe("buildFilterExpression", () => {
 
   test("like / ilike / oftype / of throw NotSupportedByDBEngine", () => {
     expect(() =>
-      buildFilterExpression({ foo: { op: "like", val: "%" } })
+      buildFilterExpression({ foo: { op: "like", val: "%" } }),
     ).toThrow(NotSupportedByDBEngine);
     expect(() =>
-      buildFilterExpression({ foo: { op: "ilike", val: "%" } })
+      buildFilterExpression({ foo: { op: "ilike", val: "%" } }),
     ).toThrow(NotSupportedByDBEngine);
     expect(() =>
       buildFilterExpression({
         foo: { op: "oftype", val: { path: ["x"], value: "string" } },
-      })
+      }),
     ).toThrow(NotSupportedByDBEngine);
     expect(() =>
       buildFilterExpression({
         foo: { op: "of", val: { path: ["x"], value: "y" } },
-      })
+      }),
     ).toThrow(NotSupportedByDBEngine);
   });
 
   test("unknown operator throws NotSupportedByDBEngine", () => {
     expect(() =>
-      buildFilterExpression(p({ foo: { op: "something", val: 1 } }))
+      buildFilterExpression(p({ foo: { op: "something", val: 1 } })),
     ).toThrow(NotSupportedByDBEngine);
   });
 });
