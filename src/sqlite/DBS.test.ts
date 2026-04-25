@@ -60,7 +60,7 @@ runOrSkip("SQLite DBS", () => {
 runOrSkip("SQLite DBS log-on-error behaviour", () => {
   let dbs: DBS;
   let dbPath: string;
-  let logMock: jest.SpyInstance;
+  let logMock: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
     dbPath = makeDbPath();
@@ -70,7 +70,7 @@ runOrSkip("SQLite DBS log-on-error behaviour", () => {
       logParams: true,
     });
     await dbs.raw("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)");
-    logMock = jest.spyOn(console, "log").mockImplementation(() => {
+    logMock = vi.spyOn(console, "log").mockImplementation(() => {
       // silenced
     });
   });
