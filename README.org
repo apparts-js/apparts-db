@@ -15,6 +15,21 @@ Install:
 npm i --save @apparts/db
 #+END_SRC
 
+The database drivers are declared as *optional peer
+dependencies* — install only the ones you actually use:
+
+#+BEGIN_SRC sh
+# Postgres backend
+npm i --save pg
+
+# DynamoDB backend
+npm i --save @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+#+END_SRC
+
+If you select an engine in the config (=use: "postgresql"= or
+=use: "dynamodb"=) without its peer dep installed, =require()=
+will fail loudly at startup.
+
 #+BEGIN_SRC js
 const connect = require("@apparts/db");
 

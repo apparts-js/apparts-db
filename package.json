@@ -27,13 +27,26 @@
   ],
   "author": "Philipp Uhl",
   "license": "MIT",
-  "dependencies": {
+  "peerDependencies": {
     "@aws-sdk/client-dynamodb": "^3.1032.0",
     "@aws-sdk/lib-dynamodb": "^3.1032.0",
     "pg": "^8.15.5"
   },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/lib-dynamodb": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@apparts/config": "^1.0.6",
+    "@aws-sdk/client-dynamodb": "^3.1032.0",
+    "@aws-sdk/lib-dynamodb": "^3.1032.0",
     "@tsconfig/node14": "^1.0.1",
     "@types/node": "^18.19.0",
     "@types/pg": "^8.6.1",
@@ -42,6 +55,7 @@
     "@vitest/coverage-v8": "^1.6.0",
     "eslint": "^8.7.0",
     "eslint-config-prettier": "^8.3.0",
+    "pg": "^8.15.5",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "supertest": "^6.1.3",
