@@ -15,7 +15,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.1.0
+          node-version: 20
       - name: Cache node modules
         uses: actions/cache@v4
         env:
@@ -26,6 +26,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run SQLite tests
-        run: CI=true npx jest src/sqlite
+        run: CI=true npx vitest run src/sqlite
         env:
           DB_ENGINE: sqlite
