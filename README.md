@@ -132,7 +132,7 @@ await dbs.createCollection(
     { name: "email", type: "text", notNull: true },
     { name: "groupId", type: "integer" },
     { name: "createdAt", type: "bigint" },
-  ],
+  ]
 );
 ```
 
@@ -199,7 +199,7 @@ Insert one or more rows. If `returning` is omitted, it defaults to `["id"]`.
 ```typescript
 const inserted = await dbs.collection("users").insert(
   [{ name: "Alice", email: "alice@example.com" }],
-  ["id"], // Return the generated IDs
+  ["id"] // Return the generated IDs
 );
 ```
 
