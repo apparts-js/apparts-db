@@ -34,5 +34,5 @@ jobs:
       pull-requests: write
       issues: write
       checks: read
-    uses: apparts-js/ai-workflows/.github/workflows/reusable-opencode-master.yml@main
+    uses: apparts-js/ai-workflows/.github/workflows/reusable-opencode-master.yml@master
     secrets: inherit
