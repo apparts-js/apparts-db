@@ -119,7 +119,7 @@ class DBS extends Queriable implements GenericDBS {
     } else {
       prefix = "";
     }
-    let q = `CREATE TABLE "${name}" (`;
+    let q = `CREATE TABLE "${prefix}${name}" (`;
     const parts: string[] = [
       ...fields.map((f) => {
         let res = `"${f.name}" ${f.type}`;
