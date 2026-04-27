@@ -96,7 +96,7 @@ CREATE TABLE "testTable" (
 )`);
     await dbs.raw(
       `INSERT INTO "testTable" ( number ) VALUES ($1), ($2)`,
-      [1, 7],
+      [1, 7]
     );
     const { rows } = await dbs.raw(`SELECT number FROM "testTable"`);
     expect(rows).toEqual([{ number: 1 }, { number: 7 }]);
@@ -157,7 +157,7 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ],
+      ]
     );
     await dbs.raw(`INSERT INTO "simpleTable" (name) VALUES ($1)`, ["test"]);
     const { rows } = await dbs.raw(`SELECT * FROM "simpleTable"`);
@@ -171,10 +171,10 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "number", type: "INT", notNull: true },
-      ],
+      ]
     );
     await expect(
-      dbs.raw(`INSERT INTO "notNullTable" (number) VALUES (NULL)`),
+      dbs.raw(`INSERT INTO "notNullTable" (number) VALUES (NULL)`)
     ).rejects.toBeDefined();
     await dbs.raw(`INSERT INTO "notNullTable" (number) VALUES ($1)`, [42]);
     const { rows } = await dbs.raw(`SELECT * FROM "notNullTable"`);
@@ -188,7 +188,7 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "status", type: "TEXT", default: "'pending'" },
-      ],
+      ]
     );
     await dbs.raw(`INSERT INTO "defaultTable" (id) VALUES (DEFAULT)`);
     const { rows } = await dbs.raw(`SELECT * FROM "defaultTable"`);
@@ -202,14 +202,11 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ],
+      ]
     );
     await dbs.raw(`INSERT INTO "pkTable" (name) VALUES ($1)`, ["first"]);
     await expect(
-      dbs.raw(`INSERT INTO "pkTable" (id, name) VALUES ($1, $2)`, [
-        1,
-        "second",
-      ]),
+      dbs.raw(`INSERT INTO "pkTable" (id, name) VALUES ($1, $2)`, [1, "second"])
     ).rejects.toBeDefined();
   });
 
@@ -220,11 +217,11 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "email", type: "TEXT" },
-      ],
+      ]
     );
     await dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"]);
     await expect(
-      dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"]),
+      dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"])
     ).rejects.toBeDefined();
   });
 
@@ -235,7 +232,7 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ],
+      ]
     );
     await dbs.createCollection(
       "childTable",
@@ -243,11 +240,11 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "parentId", type: "INT" },
-      ],
+      ]
     );
     await dbs.raw(`INSERT INTO "parentTable" (name) VALUES ($1)`, ["parent"]);
     await expect(
-      dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [999]),
+      dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [999])
     ).rejects.toBeDefined();
     await dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [1]);
     const { rows } = await dbs.raw(`SELECT * FROM "childTable"`);
@@ -262,7 +259,7 @@ describe("createCollection", () => {
         { name: "id", type: "SERIAL" },
         { name: "value", type: "INT" },
       ],
-      "test",
+      "test"
     );
     const { rows } = await dbs.raw(`
       SELECT table_name
