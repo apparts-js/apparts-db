@@ -1,12 +1,13 @@
 import { GenericQueriable } from "../generic";
-import { Id, Params } from "../generic";
+import { Id } from "../generic";
+import { Params } from "./types";
 import { PGConfig } from "./Config";
 
 export abstract class Queriable extends GenericQueriable {
-  _config: PGConfig;
+  _config!: PGConfig;
 
   /* ID FUNCTIONS */
-  newId() {
+  newId(): Id | undefined {
     return undefined;
   }
 
@@ -18,7 +19,12 @@ export abstract class Queriable extends GenericQueriable {
     return id;
   }
 
-  protected _log(message: string, query: string, params: Params, error: any) {
+  protected _log(
+    message: string,
+    query: string,
+    params: Params | unknown[] | null,
+    error: unknown
+  ) {
     if (this._config.logs === "errors") {
       if (this._config.logParams) {
         console.log(

@@ -1,4 +1,6 @@
 import setupTest from "../tests/pg";
+import type { Pool } from "pg";
+import type { PGConfig } from "./Config";
 
 const { setupDbs, teardownDbs } = setupTest({
   testName: "querytest",
@@ -15,7 +17,13 @@ describe("Log on error behavior", () => {
     query = vi.fn().mockImplementation(async () => {
       throw e;
     });
-    dbs = new DBS({} as any, { logs: "errors", logParams: true } as any);
+    dbs = new DBS(
+      {} as unknown as Pool,
+      {
+        logs: "errors",
+        logParams: true,
+      } as unknown as PGConfig
+    );
   });
   afterEach(() => {
     logMock.mockRestore();
@@ -30,7 +38,7 @@ describe("Log on error behavior", () => {
     );
     expect(logMock.mock.calls).toEqual([
       [
-        "Error in updateOne:",
+        "Error in update:",
         "\nQUERY:\n",
         `UPDATE "testTable" SET "number" = $1 WHERE "number" = $2`,
         "\nPARAMS:\n",
