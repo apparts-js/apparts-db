@@ -1,6 +1,11 @@
 import setupTest from "../tests/pg";
 import type { Pool } from "pg";
 import type { PGConfig } from "./Config";
+import {
+  UniqueConstraintViolation,
+  ForeignKeyConstraintViolation,
+  CheckConstraintViolation,
+} from "../errors";
 
 const { setupDbs, teardownDbs } = setupTest({
   testName: "querytest",
@@ -197,6 +202,11 @@ CREATE TABLE "testTableWithOpt" (
        number INT NOT NULL,
        "optionalVal" INT
 )`);
+  await dbs.raw(`
+CREATE TABLE "testTableCheck" (
+       id SERIAL PRIMARY KEY,
+       number INT CHECK (number > 0)
+)`);
 });
 afterAll(async () => {
   await teardownDbs(dbs);
@@ -225,21 +235,20 @@ describe("Insert", () => {
   it("Should fail to insert non-unique content", async () => {
     await expect(
       dbs.collection("testTable").insert([{ number: 100, id: 1 }])
-    ).rejects.toMatchObject({
-      msg: "ERROR, tried to insert, not unique",
-      _code: 1,
-    });
+    ).rejects.toBeInstanceOf(UniqueConstraintViolation);
   });
-  it("Should fail to insert with unmet foreign constraint", async () => {
+  it("Should fail to insert with unmet check or foreign constraint", async () => {
     await expect(
       dbs.collection("testTable2").insert([{ testTableId: 10000 }])
-    ).rejects.toMatchObject({
-      msg: "ERROR, tried to insert, constraints not met",
-      _code: 3,
-    });
+    ).rejects.toBeInstanceOf(CheckConstraintViolation);
     await expect(
       dbs.collection("testTable2").find({}).toArray()
     ).resolves.toStrictEqual([]);
+  });
+  it("Should fail to insert with unmet check constraint", async () => {
+    await expect(
+      dbs.collection("testTableCheck").insert([{ number: -1 }])
+    ).rejects.toBeInstanceOf(CheckConstraintViolation);
   });
   it("Should insert json", async () => {
     await expect(
@@ -759,10 +768,7 @@ describe("Update", () => {
   it("Should fail to updateOne due to uniqueness constraint", async () => {
     await expect(
       dbs.collection("testTable").updateOne({}, { id: 1 })
-    ).rejects.toMatchObject({
-      msg: "ERROR, tried to update, not unique",
-      _code: 1,
-    });
+    ).rejects.toBeInstanceOf(UniqueConstraintViolation);
   });
 });
 
@@ -789,10 +795,7 @@ describe("Remove", () => {
 
     await expect(
       dbs.collection("testTable").remove({ number: 2000 })
-    ).rejects.toMatchObject({
-      msg: "ERROR, tried to remove item that is still a reference",
-      _code: 2,
-    });
+    ).rejects.toBeInstanceOf(ForeignKeyConstraintViolation);
 
     await expect(
       dbs.collection("testTable2").remove({})

@@ -19,6 +19,12 @@ type Operator =
   | "ilike"
   | "and";
 
+import {
+  UniqueConstraintViolation,
+  ForeignKeyConstraintViolation,
+  CheckConstraintViolation,
+} from "../errors";
+
 class Query extends GenericQuery {
   _dbs: Pool | PoolClient;
   _table: string;
@@ -332,19 +338,15 @@ class Query extends GenericQuery {
       })
       .catch((err) => {
         if (err.code === "23505") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, not unique",
-            _code: 1,
-          });
-        } else if (err.code === "23503" || err.code === "23514") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, constraints not met",
-            _code: 3,
-          });
-        } else {
-          this._log("Error in insert:", q, params, err);
-          return Promise.reject(err);
+          return Promise.reject(new UniqueConstraintViolation());
         }
+        // 23503 (foreign key) and 23514 (check constraint) are grouped
+        // on insert to preserve the legacy _code: 3 behavior.
+        if (err.code === "23503" || err.code === "23514") {
+          return Promise.reject(new CheckConstraintViolation());
+        }
+        this._log("Error in insert:", q, params, err);
+        return Promise.reject(err);
       });
   }
 
@@ -380,11 +382,10 @@ class Query extends GenericQuery {
       const res = await this._dbs.query<QueryResultRow>(q, vals);
       return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (e) {
-      if ((e as { code?: string }).code === "23505") {
-        return Promise.reject({
-          msg: "ERROR, tried to update, not unique",
-          _code: 1,
-        });
+      if ((e as { code: string }).code === "23505") {
+        return Promise.reject(
+          new UniqueConstraintViolation("ERROR, tried to update, not unique")
+        );
       }
 
       this._log("Error in update:", q, vals, e);
@@ -400,15 +401,11 @@ class Query extends GenericQuery {
       const res = await this._dbs.query<QueryResultRow>(q, newVals);
       return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (err) {
-      if ((err as { code?: string }).code === "23503") {
-        return Promise.reject({
-          msg: "ERROR, tried to remove item that is still a reference",
-          _code: 2,
-        });
-      } else {
-        this._log("Error in remove:", q, newVals, err);
-        throw err;
+      if ((err as { code: string }).code === "23503") {
+        return Promise.reject(new ForeignKeyConstraintViolation());
       }
+      this._log("Error in remove:", q, newVals, err);
+      throw err;
     }
   }
 
