@@ -96,7 +96,7 @@ CREATE TABLE "testTable" (
 )`);
     await dbs.raw(
       `INSERT INTO "testTable" ( number ) VALUES ($1), ($2)`,
-      [1, 7]
+      [1, 7],
     );
     const { rows } = await dbs.raw(`SELECT number FROM "testTable"`);
     expect(rows).toEqual([{ number: 1 }, { number: 7 }]);
@@ -157,11 +157,11 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ]
+      ],
     );
     await dbs.raw(`INSERT INTO "simpleTable" (name) VALUES ($1)`, ["test"]);
     const { rows } = await dbs.raw(`SELECT * FROM "simpleTable"`);
-    expect(rows).toEqual([{ id: 1, name: "test" }]);
+    expect(rows).toStrictEqual([{ id: 1, name: "test" }]);
   });
 
   test("Should create a table with NOT NULL constraints", async () => {
@@ -171,14 +171,14 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "number", type: "INT", notNull: true },
-      ]
+      ],
     );
     await expect(
-      dbs.raw(`INSERT INTO "notNullTable" (number) VALUES (NULL)`)
-    ).rejects.toBeDefined();
+      dbs.raw(`INSERT INTO "notNullTable" (number) VALUES (NULL)`),
+    ).rejects.toThrow(/not null|violates not-null/i);
     await dbs.raw(`INSERT INTO "notNullTable" (number) VALUES ($1)`, [42]);
     const { rows } = await dbs.raw(`SELECT * FROM "notNullTable"`);
-    expect(rows).toEqual([{ id: 2, number: 42 }]);
+    expect(rows).toStrictEqual([{ id: 2, number: 42 }]);
   });
 
   test("Should create a table with DEFAULT values", async () => {
@@ -188,11 +188,11 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "status", type: "TEXT", default: "'pending'" },
-      ]
+      ],
     );
     await dbs.raw(`INSERT INTO "defaultTable" (id) VALUES (DEFAULT)`);
     const { rows } = await dbs.raw(`SELECT * FROM "defaultTable"`);
-    expect(rows).toEqual([{ id: 1, status: "pending" }]);
+    expect(rows).toStrictEqual([{ id: 1, status: "pending" }]);
   });
 
   test("Should create a table with primary key", async () => {
@@ -202,12 +202,15 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ]
+      ],
     );
     await dbs.raw(`INSERT INTO "pkTable" (name) VALUES ($1)`, ["first"]);
     await expect(
-      dbs.raw(`INSERT INTO "pkTable" (id, name) VALUES ($1, $2)`, [1, "second"])
-    ).rejects.toBeDefined();
+      dbs.raw(`INSERT INTO "pkTable" (id, name) VALUES ($1, $2)`, [
+        1,
+        "second",
+      ]),
+    ).rejects.toThrow(/unique|duplicate|pkey/i);
   });
 
   test("Should create a table with unique constraint", async () => {
@@ -217,12 +220,12 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "email", type: "TEXT" },
-      ]
+      ],
     );
     await dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"]);
     await expect(
-      dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"])
-    ).rejects.toBeDefined();
+      dbs.raw(`INSERT INTO "uniqueTable" (email) VALUES ($1)`, ["a@b.com"]),
+    ).rejects.toThrow(/unique|duplicate/i);
   });
 
   test("Should create a table with foreign key constraint", async () => {
@@ -232,7 +235,7 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "name", type: "TEXT" },
-      ]
+      ],
     );
     await dbs.createCollection(
       "childTable",
@@ -240,32 +243,57 @@ describe("createCollection", () => {
       [
         { name: "id", type: "SERIAL" },
         { name: "parentId", type: "INT" },
-      ]
+      ],
     );
     await dbs.raw(`INSERT INTO "parentTable" (name) VALUES ($1)`, ["parent"]);
     await expect(
-      dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [999])
-    ).rejects.toBeDefined();
+      dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [999]),
+    ).rejects.toThrow(/foreign|insert or update on table/i);
     await dbs.raw(`INSERT INTO "childTable" ("parentId") VALUES ($1)`, [1]);
     const { rows } = await dbs.raw(`SELECT * FROM "childTable"`);
-    expect(rows).toEqual([{ id: 2, parentId: 1 }]);
+    expect(rows).toStrictEqual([{ id: 2, parentId: 1 }]);
   });
 
-  test("Should create a table with prefix", async () => {
+  test("Should create a table with prefix in constraint names", async () => {
     await dbs.createCollection(
       "prefixedTable",
-      [],
+      [
+        { name: "id", key: ["id"] },
+        { name: "email", unique: true },
+      ],
       [
         { name: "id", type: "SERIAL" },
-        { name: "value", type: "INT" },
+        { name: "email", type: "TEXT" },
       ],
-      "test"
+      "test",
     );
     const { rows } = await dbs.raw(`
-      SELECT table_name
-      FROM information_schema.tables
+      SELECT constraint_name
+      FROM information_schema.table_constraints
       WHERE table_name = 'test_prefixedTable'
+      ORDER BY constraint_name
     `);
-    expect(rows.length).toBe(1);
+    expect(
+      rows.map((r: { constraint_name: string }) => r.constraint_name),
+    ).toEqual(
+      expect.arrayContaining([
+        "test_prefixedTable_id_pkey",
+        "test_prefixedTable_email_u",
+      ]),
+    );
+  });
+
+  test("Should create a table without prefix", async () => {
+    await dbs.createCollection(
+      "noPrefixTable",
+      [{ name: "id", key: ["id"] }],
+      [
+        { name: "id", type: "SERIAL" },
+        { name: "value", type: "TEXT" },
+      ],
+    );
+    await dbs.raw(`INSERT INTO "noPrefixTable" (value) VALUES ($1)`, ["hello"]);
+    const { rows } = await dbs.raw(`SELECT * FROM "noPrefixTable"`);
+    expect(rows).toStrictEqual([{ id: 1, value: "hello" }]);
   });
 });
