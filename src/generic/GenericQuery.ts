@@ -22,7 +22,7 @@ export abstract class GenericQuery {
   abstract toArray<T>(): Promise<T[]>;
   abstract count(): Promise<number>;
   abstract insert<Rs extends string[]>(
-    content: any[],
+    content: Record<string, unknown>[],
     returning?: Rs
   ): Promise<Record<string, Id>[]>;
   abstract insertOrUpdate<Rs extends string[]>(
@@ -31,11 +31,11 @@ export abstract class GenericQuery {
   ): Promise<Record<string, Id>[]>;
   abstract updateOne<T>(
     filter: Params,
-    c: { [p: string]: any }
+    c: Record<string, unknown>
   ): Promise<Result<T>>;
   abstract update<T>(
     filter: Params,
-    c: { [p: string]: any }
+    c: Record<string, unknown>
   ): Promise<Result<T>>;
   abstract remove<T>(params: Params): Promise<Result<T>>;
 }

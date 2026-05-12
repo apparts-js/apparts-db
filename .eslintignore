@@ -1,5 +1,0 @@
-.eslintrc.js
-.eslintrc.ci.js
-build/
-coverage/
-vitest.config.ts

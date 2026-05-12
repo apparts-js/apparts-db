@@ -1,8 +1,29 @@
-import { Pool, PoolClient } from "pg";
+import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 import { PGConfig } from "./Config";
 
 import { LogFunc } from "./types";
-import { Params, Order, Result, GenericQuery } from "../generic";
+import { Id, Params, Order, Result, GenericQuery } from "../generic";
+
+type Operator =
+  | "exists"
+  | "any"
+  | "in"
+  | "notin"
+  | "of"
+  | "oftype"
+  | "lte"
+  | "lt"
+  | "gte"
+  | "gt"
+  | "like"
+  | "ilike"
+  | "and";
+
+import {
+  UniqueConstraintViolation,
+  ForeignKeyConstraintViolation,
+  CheckConstraintViolation,
+} from "../errors";
 
 class Query extends GenericQuery {
   _dbs: Pool | PoolClient;
@@ -11,7 +32,7 @@ class Query extends GenericQuery {
   _config: PGConfig;
   _log: LogFunc;
   _fromQuery?: string;
-  _params?: any[];
+  _params?: unknown[];
 
   constructor(
     pool: Pool | PoolClient,
@@ -28,7 +49,7 @@ class Query extends GenericQuery {
 
   find(params: Params, limit?: number, offset?: number, order?: Order): this {
     let q = `FROM "${this._table}" `;
-    const newVals = [];
+    const newVals: unknown[] = [];
     q += this._buildWhere(params, newVals);
     if (order) {
       q +=
@@ -62,7 +83,7 @@ class Query extends GenericQuery {
     return this;
   }
 
-  _buildWhere(params: Params, newVals: any[]) {
+  _buildWhere(params: Params, newVals: unknown[]) {
     const keys = Object.keys(params);
     if (keys.length === 0) {
       return "";
@@ -78,9 +99,9 @@ class Query extends GenericQuery {
           } else if (typeof val !== "object") {
             newVals.push(val);
             return `"${key}" = $${this._counter++}`;
-          } else if (typeof val === "object" && "op" in val) {
-            const op = val.op;
-            return this._decideOperator(key, op, val.val, newVals);
+          } else if (typeof val === "object" && val !== null && "op" in val) {
+            const filter = val as { op: Operator; val: unknown };
+            return this._decideOperator(key, filter.op, filter.val, newVals);
           } else {
             throw new Error(
               `ERROR, unknown value type for key "${key}": ${val}`
@@ -91,7 +112,12 @@ class Query extends GenericQuery {
     );
   }
 
-  _buildJsonPath(key, path, newVals, keepAsJson = false) {
+  _buildJsonPath(
+    key: string,
+    path: string[],
+    newVals: unknown[],
+    keepAsJson = false
+  ) {
     if (path.length < 1) {
       throw new Error(
         "ERROR, JSON path requires at least one path element. You submitted []."
@@ -114,19 +140,19 @@ class Query extends GenericQuery {
     );
   }
 
-  _checkKey(key) {
+  _checkKey(key: string) {
     if (/"/.test(key)) {
-      throw 'Key must not contain "!';
+      throw new Error('Key must not contain double quotes (")');
     }
   }
 
   _decideOperator(
     key: string,
-    op: string,
-    val: any,
-    newVals: any[],
+    op: Operator | string,
+    val: unknown,
+    newVals: unknown[],
     keyIsQuoted = false
-  ) {
+  ): string {
     if (!keyIsQuoted) {
       this._checkKey(key);
       key = `"${key}"`;
@@ -137,52 +163,63 @@ class Query extends GenericQuery {
       case "any":
         newVals.push(val);
         return `$${this._counter++} = ANY(${key})`;
-      case "in":
-        if (val.length === 0) {
+      case "in": {
+        const arr = val as unknown[];
+        if (arr.length === 0) {
           return " FALSE ";
         }
-        val.forEach((v: any) => newVals.push(v));
+        arr.forEach((v) => newVals.push(v));
         return (
-          `${key} IN (` + val.map(() => `$${this._counter++}`).join(",") + ")"
+          `${key} IN (` + arr.map(() => `$${this._counter++}`).join(",") + ")"
         );
-      case "notin":
-        if (val.length === 0) {
+      }
+      case "notin": {
+        const arr = val as unknown[];
+        if (arr.length === 0) {
           return " TRUE ";
         }
-        val.forEach((v: any) => newVals.push(v));
+        arr.forEach((v) => newVals.push(v));
         return (
           `${key} NOT IN (` +
-          val.map(() => `$${this._counter++}`).join(",") +
+          arr.map(() => `$${this._counter++}`).join(",") +
           ")"
         );
+      }
       case "of": {
-        const path = this._buildJsonPath(key, val.path, newVals);
-        if (typeof val.value === "object") {
+        const ofVal = val as {
+          path: string[];
+          value: unknown;
+          cast?: "string" | "number" | "boolean" | null;
+        };
+        const path = this._buildJsonPath(key, ofVal.path, newVals);
+        if (typeof ofVal.value === "object" && ofVal.value !== null) {
           let castedPath = path;
-          if (val.cast) {
+          if (ofVal.cast) {
             castedPath = `(${path})::${
-              val.cast === "number"
+              ofVal.cast === "number"
                 ? "double precision"
-                : val.value.cast === "boolean"
+                : ofVal.cast === "boolean"
                 ? "bool"
                 : "text"
             }`;
           }
+          const nested = ofVal.value as { op: Operator | string; val: unknown };
           return this._decideOperator(
             castedPath,
-            val.value.op,
-            val.value.val,
+            nested.op,
+            nested.val,
             newVals,
             true
           );
         } else {
-          newVals.push(val.value);
+          newVals.push(ofVal.value);
           return `${path} = $${this._counter++}`;
         }
       }
       case "oftype": {
-        const path = this._buildJsonPath(key, val.path, newVals, true);
-        newVals.push(val.value);
+        const ofTypeVal = val as { path: string[]; value: string };
+        const path = this._buildJsonPath(key, ofTypeVal.path, newVals, true);
+        newVals.push(ofTypeVal.value);
         return `jsonb_typeof(${path}) = $${this._counter++}`;
       }
       case "lte":
@@ -204,7 +241,7 @@ class Query extends GenericQuery {
         newVals.push(val);
         return `${key} ILIKE $${this._counter++}`;
       case "and":
-        return (val as { op: string; val: any }[])
+        return (val as { op: Operator | string; val: unknown }[])
           .map((v) => this._decideOperator(key, v.op, v.val, newVals, true))
           .join(" AND ");
       default:
@@ -217,12 +254,13 @@ class Query extends GenericQuery {
   }
 
   findByIds(ids: Params, limit?: number, offset?: number, order?: Order) {
-    const params = {};
+    const params: Params = {};
     Object.keys(ids).forEach((key) => {
-      if (Array.isArray(ids[key])) {
-        params[key] = { op: "in", val: ids[key] };
+      const v = ids[key];
+      if (Array.isArray(v)) {
+        params[key] = { op: "in", val: v };
       } else {
-        params[key] = ids[key];
+        params[key] = v;
       }
     });
 
@@ -232,12 +270,12 @@ class Query extends GenericQuery {
   async toArray<T>(): Promise<T[]> {
     const query = "SELECT * " + this._fromQuery;
     return this._dbs
-      .query<T>(query, this._params)
+      .query<QueryResultRow>(query, this._params || [])
       .then((res) => {
-        return Promise.resolve(res.rows);
+        return Promise.resolve(res.rows as T[]);
       })
       .catch((e) => {
-        this._log("Error in toArray:", query, this._params, e);
+        this._log("Error in toArray:", query, this._params || [], e);
         return Promise.reject(e);
       });
   }
@@ -247,16 +285,16 @@ class Query extends GenericQuery {
     try {
       const result = await this._dbs.query<{ count: number }>(
         query,
-        this._params
+        this._params || []
       );
       return result.rows[0].count;
     } catch (e) {
-      this._log("Error in count:", query, this._params, e);
+      this._log("Error in count:", query, this._params || [], e);
       throw e;
     }
   }
 
-  _transformArray(array: any[]) {
+  _transformArray(array: unknown[]) {
     if (this._config.arrayAsJSON) {
       return JSON.stringify(array);
     } else {
@@ -264,7 +302,10 @@ class Query extends GenericQuery {
     }
   }
 
-  async insert(content: any[], returning = ["id"]) {
+  async insert(
+    content: Record<string, unknown>[],
+    returning: string[] = ["id"]
+  ): Promise<Record<string, Id>[]> {
     if (content.length === 0) {
       return Promise.resolve([]);
     }
@@ -283,33 +324,29 @@ class Query extends GenericQuery {
     if (returning && returning.length > 0) {
       q += " RETURNING " + returning.map((r) => `"${r}"`).join(",");
     }
-    const params = [].concat(
-      ...content.map((c) =>
-        keys.map((k) =>
-          Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]
-        )
-      )
-    );
+    const params: unknown[] = [];
+    for (const c of content) {
+      for (const k of keys) {
+        const v = c[k];
+        params.push(Array.isArray(v) ? this._transformArray(v) : v);
+      }
+    }
     return this._dbs
       .query(q, params)
       .then((res) => {
-        return Promise.resolve(res.rows);
+        return Promise.resolve(res.rows as Record<string, Id>[]);
       })
       .catch((err) => {
         if (err.code === "23505") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, not unique",
-            _code: 1,
-          });
-        } else if (err.code === "23503" || err.code === "23514") {
-          return Promise.reject({
-            msg: "ERROR, tried to insert, constraints not met",
-            _code: 3,
-          });
-        } else {
-          this._log("Error in insert:", q, params, err);
-          return Promise.reject(err);
+          return Promise.reject(new UniqueConstraintViolation());
         }
+        // 23503 (foreign key) and 23514 (check constraint) are grouped
+        // on insert to preserve the legacy _code: 3 behavior.
+        if (err.code === "23503" || err.code === "23514") {
+          return Promise.reject(new CheckConstraintViolation());
+        }
+        this._log("Error in insert:", q, params, err);
+        return Promise.reject(err);
       });
   }
 
@@ -369,11 +406,17 @@ class Query extends GenericQuery {
       });
   }
 
-  async updateOne(filter: Params, c: { [p: string]: any }) {
-    return this.update(filter, c);
+  async updateOne<T>(
+    filter: Params,
+    c: Record<string, unknown>
+  ): Promise<Result<T>> {
+    return this.update<T>(filter, c);
   }
 
-  async update(filter: Params, c: { [p: string]: any }) {
+  async update<T>(
+    filter: Params,
+    c: Record<string, unknown>
+  ): Promise<Result<T>> {
     let q = `UPDATE "${this._table}" SET `;
     const keys = Object.keys(c);
     if (keys.length > 1) {
@@ -383,46 +426,46 @@ class Query extends GenericQuery {
       q += keys.map((k) => `"${k}"`) + " = ";
       q += keys.map(() => `$${this._counter++}`);
     }
-    const newVals = [];
+    const newVals: unknown[] = [];
     q += " " + this._buildWhere(filter, newVals);
-    const vals = keys
-      .map((k) => (Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]))
+    const vals: unknown[] = keys
+      .map((k) => {
+        const v = c[k];
+        return Array.isArray(v) ? this._transformArray(v) : v;
+      })
       .concat(newVals);
     try {
-      return await this._dbs.query(q, vals);
+      const res = await this._dbs.query<QueryResultRow>(q, vals);
+      return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (e) {
       if ((e as { code: string }).code === "23505") {
-        return Promise.reject({
-          msg: "ERROR, tried to update, not unique",
-          _code: 1,
-        });
+        return Promise.reject(
+          new UniqueConstraintViolation("ERROR, tried to update, not unique")
+        );
       }
 
-      this._log("Error in updateOne:", q, vals, e);
+      this._log("Error in update:", q, vals, e);
       throw e;
     }
   }
 
   async remove<T>(params: Params): Promise<Result<T>> {
     let q = `DELETE FROM "${this._table}" `;
-    const newVals = [];
+    const newVals: unknown[] = [];
     q += this._buildWhere(params, newVals);
     try {
-      return await this._dbs.query(q, newVals);
+      const res = await this._dbs.query<QueryResultRow>(q, newVals);
+      return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (err) {
       if ((err as { code: string }).code === "23503") {
-        return Promise.reject({
-          msg: "ERROR, tried to remove item that is still a reference",
-          _code: 2,
-        });
-      } else {
-        this._log("Error in remove:", q, newVals, err);
-        throw err;
+        return Promise.reject(new ForeignKeyConstraintViolation());
       }
+      this._log("Error in remove:", q, newVals, err);
+      throw err;
     }
   }
 
-  async drop() {
+  async drop(): Promise<QueryResult> {
     const q = `DROP TABLE "${this._table}"`;
     try {
       return await this._dbs.query(q);

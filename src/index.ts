@@ -13,3 +13,4 @@ export async function connect(c: Config) {
 }
 
 export * from "./generic";
+export * from "./errors";

@@ -7,5 +7,5 @@ interface Config {
   dynamodb?: DynamoConfig;
 }
 
-export { PGConfig, DynamoConfig };
+export type { PGConfig, DynamoConfig };
 export default Config;

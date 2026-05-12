@@ -1,6 +1,7 @@
 import { Client } from "pg";
 import { connect } from "..";
 import config from "@apparts/config";
+import { GenericDBS } from "../generic";
 
 const _dbConfig = config.get("db-test-config");
 const dbConfig = {
@@ -13,7 +14,7 @@ const dbConfig = {
 
 const createOrDropDatabase = async (
   action: "CREATE" | "DROP",
-  db_config: Record<string, any>,
+  db_config: Record<string, unknown>,
   dbName: string
 ) => {
   const config = { ...db_config };
@@ -43,8 +44,13 @@ export default ({ testName }: { testName: string }) => {
   beforeAll(async () => {
     try {
       await createOrDropDatabase("DROP", dbConfig.postgresql, dbName);
-    } catch (e: any) {
-      if (e.code !== "3D000") {
+    } catch (e: unknown) {
+      if (
+        typeof e === "object" &&
+        e !== null &&
+        "code" in e &&
+        (e as { code: string }).code !== "3D000"
+      ) {
         console.log(e);
       }
     }
@@ -71,7 +77,7 @@ export default ({ testName }: { testName: string }) => {
         db: dbName,
       },
     },
-    setupDbs: async (config?: Record<string, any>) => {
+    setupDbs: async (config?: Record<string, unknown>) => {
       return await connect({
         ...dbConfig,
         postgresql: {
@@ -82,7 +88,7 @@ export default ({ testName }: { testName: string }) => {
       });
     },
 
-    teardownDbs: async (dbs: any) => {
+    teardownDbs: async (dbs: GenericDBS) => {
       await dbs.shutdown();
     },
   };

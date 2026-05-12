@@ -1,11 +1,16 @@
-import { Pool } from "pg";
+import { Pool, QueryResultRow } from "pg";
 import { PGConfig } from "./Config";
 
 import { Queriable } from "./Queriable";
 
 import Query from "./Query";
 import Transaction from "./Transaction";
-import { GenericDBS } from "../generic";
+import {
+  GenericDBS,
+  GenericQuery,
+  GenericTransaction,
+  Result,
+} from "../generic";
 
 class DBS extends Queriable implements GenericDBS {
   _dbs: Pool;
@@ -18,14 +23,14 @@ class DBS extends Queriable implements GenericDBS {
   }
 
   /* DBS FUNCTIONS */
-  collection(col: string) {
+  collection(col: string): GenericQuery {
     return new Query(this._dbs, col, {
       config: this._config,
       log: (...ps) => this._log(...ps),
     });
   }
 
-  async transaction<T>(fn: (t: Transaction) => Promise<T>) {
+  async transaction<T>(fn: (t: GenericTransaction) => Promise<T>) {
     const client = await this._dbs.connect();
     const transaction = new Transaction(client, {
       config: this._config,
@@ -54,7 +59,7 @@ class DBS extends Queriable implements GenericDBS {
    *                           <true/false>, default: <defaultVal> }
    * @returns Promise
    */
-  createCollection(
+  async createCollection(
     name: string,
     indexes: {
       key?: string[];
@@ -76,47 +81,47 @@ class DBS extends Queriable implements GenericDBS {
       prefix = "";
     }
     let q = `CREATE TABLE "${name}" (`;
-    q += []
-      .concat(
-        // fields
-        fields.map((f) => {
-          let res = `"${f.name}" ${f.type}`;
-          if (f.notNull) {
-            res += " NOT NULL";
-          }
-          if (f.default !== undefined) {
-            res += " DEFAULT " + f.default;
-          }
-          return res;
-        }),
-        // constraints
-        indexes
-          .filter((i) => i.key)
-          .map(
-            (i) =>
-              `CONSTRAINT "${name}_${i.name}_pkey" PRIMARY KEY (` +
-              i.key.map((k) => `"${k}"`).join(",") +
-              ")"
-          ),
-        indexes
-          .filter((i) => i.unique)
-          .map((i) => `CONSTRAINT "${name}_${i.name}_u" UNIQUE ("${i.name}")`),
-        indexes
-          .filter((i) => i.foreign)
-          .map(
-            (i) =>
-              `CONSTRAINT "${name}_${i.name}_fkey" FOREIGN KEY ` +
-              `("${i.name}") REFERENCES "${i.foreign.table}" ` +
-              `(${i.foreign.field}) MATCH SIMPLE`
-          )
-      )
-      .join(",");
+    const parts: string[] = [
+      ...fields.map((f) => {
+        let res = `"${f.name}" ${f.type}`;
+        if (f.notNull) {
+          res += " NOT NULL";
+        }
+        if (f.default !== undefined) {
+          res += " DEFAULT " + f.default;
+        }
+        return res;
+      }),
+      ...indexes
+        .filter((i): i is typeof i & { key: string[] } => i.key !== undefined)
+        .map(
+          (i) =>
+            `CONSTRAINT "${name}_${i.name}_pkey" PRIMARY KEY (` +
+            i.key.map((k) => `"${k}"`).join(",") +
+            ")"
+        ),
+      ...indexes
+        .filter((i) => i.unique)
+        .map((i) => `CONSTRAINT "${name}_${i.name}_u" UNIQUE ("${i.name}")`),
+      ...indexes
+        .filter(
+          (i): i is typeof i & { foreign: { table: string; field: string } } =>
+            i.foreign !== undefined
+        )
+        .map(
+          (i) =>
+            `CONSTRAINT "${name}_${i.name}_fkey" FOREIGN KEY ` +
+            `("${i.name}") REFERENCES "${i.foreign.table}" ` +
+            `(${i.foreign.field}) MATCH SIMPLE`
+        ),
+    ];
+    q += parts.join(",");
     // with
     q += ") WITH ( OIDS = FALSE )";
     try {
-      return this._dbs.query(q);
+      return await this._dbs.query(q);
     } catch (e) {
-      this._log("Error in updateOne:", "", {}, e);
+      this._log("Error in createCollection:", q, [], e);
       throw e;
     }
   }
@@ -158,9 +163,10 @@ class DBS extends Queriable implements GenericDBS {
     throw new Error("ERROR: Type not found: " + JSON.stringify(type));
   }
 
-  async raw(query: string, params: any[] = []) {
+  async raw<T>(query: string, params: unknown[] = []): Promise<Result<T>> {
     try {
-      return await this._dbs.query(query, params);
+      const res = await this._dbs.query<QueryResultRow>(query, params);
+      return { rows: res.rows as T[], rowCount: res.rowCount };
     } catch (e) {
       this._log("Error in dbs.raw", query, { params }, e);
       throw e;

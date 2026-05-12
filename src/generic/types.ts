@@ -36,12 +36,12 @@ export type Filter =
     };
 
 export type Params = {
-  [u: string]: string | number | boolean | string[] | number[] | Filter;
+  [u: string]: string | number | boolean | string[] | number[] | Filter | null;
 };
 export type Id = string | number;
 export type Order = { key: string; dir: "ASC" | "DESC"; path?: string[] }[];
 
 export type Result<T> = {
   rows: T[];
-  rowCount?: number;
+  rowCount?: number | null;
 };
