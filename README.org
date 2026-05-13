@@ -273,21 +273,6 @@ type Result<T> = {
 };
 #+END_SRC
 
-The object can contain these keys:
-- ~key~ :: (required) The field that should be ordered.
-- ~dir~ :: (required) The direction: ~"ASC"~ for ascending or ~"DESC"~ for descending.
-- ~path~ :: (optional) If ~key~ describes a JSON field, ~path~ can be used
-  to specify by which element within a JSON object should be ordered.
-  Path is then an array of strings (keys) that define the path within
-  the nested JSON object.
-
-#+BEGIN_SRC typescript
-// Order by a nested JSON property
-await dbs.collection("users")
-  .find({}, 10, 0, [{ key: "metadata", dir: "ASC", path: ["age"] }])
-  .toArray();
-#+END_SRC
-
 *** Filters and Operators
 
 The ~find~ methods accept a ~Params~ object where values can be primitives or filter operators. The value is either a direct value or an object that has ~op~ and ~val~ keys.
