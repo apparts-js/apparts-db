@@ -36,6 +36,7 @@ class DBS extends Queriable implements GenericDBS {
         lte: true,
         exists: true,
         and: true,
+        any: true,
         like: true,
         ilike: true,
         jsonPath: true,

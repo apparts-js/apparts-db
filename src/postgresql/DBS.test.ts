@@ -122,6 +122,7 @@ describe("getCapabilities", () => {
     expect(caps.filter.ilike).toBe(true);
     expect(caps.filter.jsonPath).toBe(true);
     expect(caps.filter.jsonType).toBe(true);
+    expect(caps.filter.any).toBe(true);
 
     expect(caps.pagination.limit).toBe(true);
     expect(caps.pagination.offset).toBe(true);

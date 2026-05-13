@@ -58,6 +58,7 @@ export type Capabilities = {
     lte: boolean;
     exists: boolean;
     and: boolean;
+    any: boolean;
     like: boolean;
     ilike: boolean;
     jsonPath: boolean;
