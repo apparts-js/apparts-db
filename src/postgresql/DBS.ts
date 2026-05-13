@@ -6,6 +6,7 @@ import { Queriable } from "./Queriable";
 import Query from "./Query";
 import Transaction from "./Transaction";
 import {
+  Capabilities,
   GenericDBS,
   GenericQuery,
   GenericTransaction,
@@ -20,6 +21,43 @@ class DBS extends Queriable implements GenericDBS {
     super();
     this._dbs = dbs;
     this._config = config;
+  }
+
+  getCapabilities(): Capabilities {
+    return {
+      filter: {
+        eq: true,
+        null: true,
+        in: true,
+        notin: true,
+        gt: true,
+        gte: true,
+        lt: true,
+        lte: true,
+        exists: true,
+        and: true,
+        like: true,
+        ilike: true,
+        jsonPath: true,
+        jsonType: true,
+      },
+      pagination: {
+        limit: true,
+        offset: true,
+        cursor: false,
+        order: true,
+      },
+      mutation: {
+        insert: true,
+        insertBatchAtomic: true,
+        upsert: false,
+        updateByFilter: true,
+        removeByFilter: true,
+      },
+      count: true,
+      transaction: true,
+      drop: true,
+    };
   }
 
   /* DBS FUNCTIONS */
@@ -73,7 +111,7 @@ class DBS extends Queriable implements GenericDBS {
       notNull?: boolean;
       default?: string;
     }[],
-    prefix?: string
+    prefix?: string,
   ) {
     if (prefix) {
       prefix += "_";
@@ -98,7 +136,7 @@ class DBS extends Queriable implements GenericDBS {
           (i) =>
             `CONSTRAINT "${name}_${i.name}_pkey" PRIMARY KEY (` +
             i.key.map((k) => `"${k}"`).join(",") +
-            ")"
+            ")",
         ),
       ...indexes
         .filter((i) => i.unique)
@@ -106,13 +144,13 @@ class DBS extends Queriable implements GenericDBS {
       ...indexes
         .filter(
           (i): i is typeof i & { foreign: { table: string; field: string } } =>
-            i.foreign !== undefined
+            i.foreign !== undefined,
         )
         .map(
           (i) =>
             `CONSTRAINT "${name}_${i.name}_fkey" FOREIGN KEY ` +
             `("${i.name}") REFERENCES "${i.foreign.table}" ` +
-            `(${i.foreign.field}) MATCH SIMPLE`
+            `(${i.foreign.field}) MATCH SIMPLE`,
         ),
     ];
     q += parts.join(",");
