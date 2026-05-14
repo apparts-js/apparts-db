@@ -23,14 +23,14 @@ CREATE TABLE "testTable" (
       transactionMock = vi.spyOn(t, "end");
 
       await expect(
-        t.collection("testTable").insert([{ number: 100 }])
+        t.collection("testTable").insert([{ number: 100 }]),
       ).resolves.toMatchObject([{ id: 1 }]);
       return 123;
     });
     expect(transactionMock.mock.calls).toHaveLength(1);
 
     await expect(
-      dbs.collection("testTable").findById({}).toArray()
+      dbs.collection("testTable").findById({}).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
     expect(res).toBe(123);
   });
@@ -42,14 +42,14 @@ CREATE TABLE "testTable" (
         transactionMock = vi.spyOn(t, "end");
 
         await expect(
-          t.collection("testTable").insert([{ number: 100 }])
+          t.collection("testTable").insert([{ number: 100 }]),
         ).resolves.toMatchObject([{ id: 2 }]);
         throw new Error("Rollback");
-      })
+      }),
     ).rejects.toThrow("Rollback");
     expect(transactionMock.mock.calls).toHaveLength(1);
     await expect(
-      dbs.collection("testTable").findById({}).toArray()
+      dbs.collection("testTable").findById({}).toArray(),
     ).resolves.toMatchObject([{ id: 1, number: 100 }]);
   });
 });

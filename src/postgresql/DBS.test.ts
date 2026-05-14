@@ -96,7 +96,7 @@ CREATE TABLE "testTable" (
 )`);
     await dbs.raw(
       `INSERT INTO "testTable" ( number ) VALUES ($1), ($2)`,
-      [1, 7]
+      [1, 7],
     );
     const { rows } = await dbs.raw(`SELECT number FROM "testTable"`);
     expect(rows).toEqual([{ number: 1 }, { number: 7 }]);

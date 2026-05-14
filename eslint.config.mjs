@@ -55,5 +55,5 @@ export default tseslint.config(
       },
     },
     { ignores: ["jest.config.js", "build/*", "dist/*", "build.js"] },
-  ]
+  ],
 );

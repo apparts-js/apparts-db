@@ -23,7 +23,7 @@ export class ForeignKeyConstraintViolation extends DBError {
   constructor(message?: string) {
     super(
       message || "ERROR, tried to remove item that is still a reference",
-      2
+      2,
     );
     Object.setPrototypeOf(this, ForeignKeyConstraintViolation.prototype);
   }
