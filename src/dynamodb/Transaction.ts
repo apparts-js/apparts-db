@@ -1,14 +1,6 @@
 import {
-  BatchGetCommand,
-  BatchWriteCommand,
-  DeleteCommand,
   DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  ScanCommand,
   TransactWriteCommand,
-  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 import {
@@ -20,19 +12,7 @@ import {
 import { DynamoConfig } from "./Config";
 import { Queriable } from "./Queriable";
 import TransactionQuery, { TransactItem } from "./TransactionQuery";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const RAW_COMMAND_FACTORIES: Record<string, (input: any) => any> = {
-  Scan: (input) => new ScanCommand(input),
-  Query: (input) => new QueryCommand(input),
-  GetItem: (input) => new GetCommand(input),
-  PutItem: (input) => new PutCommand(input),
-  UpdateItem: (input) => new UpdateCommand(input),
-  DeleteItem: (input) => new DeleteCommand(input),
-  BatchGet: (input) => new BatchGetCommand(input),
-  BatchWrite: (input) => new BatchWriteCommand(input),
-};
-/* eslint-enable @typescript-eslint/no-explicit-any */
+import { RAW_COMMAND_FACTORIES, RAW_OPERATIONS } from "./rawCommands";
 
 class Transaction extends Queriable implements GenericTransaction {
   _client: DynamoDBDocumentClient;
@@ -55,15 +35,15 @@ class Transaction extends Queriable implements GenericTransaction {
     const factory = RAW_COMMAND_FACTORIES[query];
     if (!factory) {
       throw new NotSupportedByDBEngine(
-        `Transaction.raw: unknown DynamoDB operation "${query}". Supported: ${Object.keys(
-          RAW_COMMAND_FACTORIES
-        ).join(", ")}.`
+        `Transaction.raw: unknown DynamoDB operation "${query}". Supported: ${RAW_OPERATIONS.join(
+          ", ",
+        )}.`,
       );
     }
     const input = params?.[0];
     if (typeof input !== "object" || input === null || Array.isArray(input)) {
       throw new NotSupportedByDBEngine(
-        `Transaction.raw: DynamoDB ${query} requires a single plain-object input as params[0].`
+        `Transaction.raw: DynamoDB ${query} requires a single plain-object input as params[0].`,
       );
     }
     const res = (await this._client.send(factory(input))) as Record<
@@ -84,7 +64,7 @@ class Transaction extends Queriable implements GenericTransaction {
         config: this._config,
         log: (...ps) => this._log(...ps),
       },
-      this._writes
+      this._writes,
     );
   }
 
@@ -100,12 +80,12 @@ class Transaction extends Queriable implements GenericTransaction {
       // Validate BEFORE marking the transaction finished so a caller that
       // catches this error can split the work into smaller batches.
       throw new NotSupportedByDBEngine(
-        `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`
+        `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`,
       );
     }
     try {
       await this._client.send(
-        new TransactWriteCommand({ TransactItems: this._writes })
+        new TransactWriteCommand({ TransactItems: this._writes }),
       );
       this._finished = true;
     } catch (e) {
@@ -129,8 +109,8 @@ class Transaction extends Queriable implements GenericTransaction {
         "TransactWriteItems",
         {},
         new Error(
-          "Transaction.rollback: called after the transaction was already committed or rolled back; the server-side state cannot be undone."
-        )
+          "Transaction.rollback: called after the transaction was already committed or rolled back; the server-side state cannot be undone.",
+        ),
       );
       return;
     }

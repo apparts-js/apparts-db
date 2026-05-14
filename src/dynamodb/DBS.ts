@@ -1,40 +1,12 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  BatchGetCommand,
-  BatchWriteCommand,
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  ScanCommand,
-  UpdateCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 import { GenericDBS, NotSupportedByDBEngine, Result } from "../generic";
 import { DynamoConfig } from "./Config";
 import Query from "./Query";
 import Transaction from "./Transaction";
 import { Queriable } from "./Queriable";
-
-// Whitelist of DynamoDB DocumentClient operations that DBS.raw forwards.
-// Anything else is rejected up front rather than papering over an
-// unrecognized op string with a generic SDK error. Inputs are typed as
-// the SDK's InputType-erased shape (any) since the caller is already
-// reaching for the escape hatch — they are responsible for shaping the
-// request correctly per the AWS SDK docs.
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const RAW_COMMAND_FACTORIES: Record<string, (input: any) => any> = {
-  Scan: (input) => new ScanCommand(input),
-  Query: (input) => new QueryCommand(input),
-  GetItem: (input) => new GetCommand(input),
-  PutItem: (input) => new PutCommand(input),
-  UpdateItem: (input) => new UpdateCommand(input),
-  DeleteItem: (input) => new DeleteCommand(input),
-  BatchGet: (input) => new BatchGetCommand(input),
-  BatchWrite: (input) => new BatchWriteCommand(input),
-};
-/* eslint-enable @typescript-eslint/no-explicit-any */
+import { RAW_COMMAND_FACTORIES, RAW_OPERATIONS } from "./rawCommands";
 
 class DBS extends Queriable implements GenericDBS {
   _client: DynamoDBDocumentClient;
@@ -43,7 +15,7 @@ class DBS extends Queriable implements GenericDBS {
   constructor(
     client: DynamoDBDocumentClient,
     rawClient: DynamoDBClient,
-    config: DynamoConfig
+    config: DynamoConfig,
   ) {
     super();
     this._client = client;
@@ -84,15 +56,15 @@ class DBS extends Queriable implements GenericDBS {
     const factory = RAW_COMMAND_FACTORIES[query];
     if (!factory) {
       throw new NotSupportedByDBEngine(
-        `DBS.raw: unknown DynamoDB operation "${query}". Supported: ${Object.keys(
-          RAW_COMMAND_FACTORIES
-        ).join(", ")}.`
+        `DBS.raw: unknown DynamoDB operation "${query}". Supported: ${RAW_OPERATIONS.join(
+          ", ",
+        )}.`,
       );
     }
     const input = params?.[0];
     if (typeof input !== "object" || input === null || Array.isArray(input)) {
       throw new NotSupportedByDBEngine(
-        `DBS.raw: DynamoDB ${query} requires a single plain-object input as params[0].`
+        `DBS.raw: DynamoDB ${query} requires a single plain-object input as params[0].`,
       );
     }
     try {
