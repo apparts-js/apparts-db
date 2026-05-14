@@ -135,21 +135,13 @@ Query objects are created via ~dbs.collection("tableName")~.
 
 Find rows matching the given parameters.
 
-The second argument accepts either a ~Pagination~ object or positional arguments
-(~limit~, ~offset~, ~order~) for backward compatibility.
-
 #+BEGIN_SRC typescript
 // Simple equality
 await dbs.collection("users").find({ role: "admin" }).toArray();
 
-// With Pagination object (recommended)
+// With Pagination object
 await dbs.collection("users")
   .find({ active: true }, { limit: 10, offset: 0, order: [{ key: "createdAt", dir: "DESC" }] })
-  .toArray();
-
-// Backward-compatible positional args
-await dbs.collection("users")
-  .find({ active: true }, 10, 0, [{ key: "createdAt", dir: "DESC" }])
   .toArray();
 #+END_SRC
 
@@ -247,7 +239,8 @@ await dbs.collection("users")
 *** Pagination
 
 The ~find~, ~findById~, and ~findByIds~ methods accept an optional ~Pagination~ object
-as the second argument. The ~cursor~ field is reserved for future keyset pagination.
+as the second argument. The ~cursor~ field is reserved for future keyset pagination
+and currently throws an error if set.
 
 #+BEGIN_SRC typescript
 type PaginationCursor = string | Record<string, unknown>;
