@@ -6,6 +6,7 @@ import { Queriable } from "./Queriable";
 import Query from "./Query";
 import Transaction from "./Transaction";
 import {
+  Capabilities,
   GenericDBS,
   GenericQuery,
   GenericTransaction,
@@ -20,6 +21,44 @@ class DBS extends Queriable implements GenericDBS {
     super();
     this._dbs = dbs;
     this._config = config;
+  }
+
+  getCapabilities(): Capabilities {
+    return {
+      filter: {
+        eq: true,
+        null: true,
+        in: true,
+        notin: true,
+        gt: true,
+        gte: true,
+        lt: true,
+        lte: true,
+        exists: true,
+        and: true,
+        any: true,
+        like: true,
+        ilike: true,
+        jsonPath: true,
+        jsonType: true,
+      },
+      pagination: {
+        limit: true,
+        offset: true,
+        cursor: false,
+        order: true,
+      },
+      mutation: {
+        insert: true,
+        insertBatchAtomic: true,
+        upsert: false,
+        updateByFilter: true,
+        removeByFilter: true,
+      },
+      count: true,
+      transaction: true,
+      drop: true,
+    };
   }
 
   /* DBS FUNCTIONS */

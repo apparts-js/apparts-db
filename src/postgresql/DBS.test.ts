@@ -1,4 +1,7 @@
 import setupTest from "../tests/pg";
+import type { Pool } from "pg";
+import type { PGConfig } from "./Config";
+import DBS from "./DBS";
 const { setupDbs, teardownDbs } = setupTest({
   testName: "dbstest",
 });
@@ -97,5 +100,43 @@ CREATE TABLE "testTable" (
     );
     const { rows } = await dbs.raw(`SELECT number FROM "testTable"`);
     expect(rows).toEqual([{ number: 1 }, { number: 7 }]);
+  });
+});
+
+describe("getCapabilities", () => {
+  it("Should return capabilities for PostgreSQL", () => {
+    const dbs = new DBS({} as unknown as Pool, {} as unknown as PGConfig);
+    const caps = dbs.getCapabilities();
+
+    expect(caps.filter.eq).toBe(true);
+    expect(caps.filter.null).toBe(true);
+    expect(caps.filter.in).toBe(true);
+    expect(caps.filter.notin).toBe(true);
+    expect(caps.filter.gt).toBe(true);
+    expect(caps.filter.gte).toBe(true);
+    expect(caps.filter.lt).toBe(true);
+    expect(caps.filter.lte).toBe(true);
+    expect(caps.filter.exists).toBe(true);
+    expect(caps.filter.and).toBe(true);
+    expect(caps.filter.like).toBe(true);
+    expect(caps.filter.ilike).toBe(true);
+    expect(caps.filter.jsonPath).toBe(true);
+    expect(caps.filter.jsonType).toBe(true);
+    expect(caps.filter.any).toBe(true);
+
+    expect(caps.pagination.limit).toBe(true);
+    expect(caps.pagination.offset).toBe(true);
+    expect(caps.pagination.cursor).toBe(false);
+    expect(caps.pagination.order).toBe(true);
+
+    expect(caps.mutation.insert).toBe(true);
+    expect(caps.mutation.insertBatchAtomic).toBe(true);
+    expect(caps.mutation.upsert).toBe(false);
+    expect(caps.mutation.updateByFilter).toBe(true);
+    expect(caps.mutation.removeByFilter).toBe(true);
+
+    expect(caps.count).toBe(true);
+    expect(caps.transaction).toBe(true);
+    expect(caps.drop).toBe(true);
   });
 });

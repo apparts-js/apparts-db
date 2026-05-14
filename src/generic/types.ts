@@ -45,3 +45,39 @@ export type Result<T> = {
   rows: T[];
   rowCount?: number | null;
 };
+
+export type Capabilities = {
+  filter: {
+    eq: boolean;
+    null: boolean;
+    in: boolean;
+    notin: boolean;
+    gt: boolean;
+    gte: boolean;
+    lt: boolean;
+    lte: boolean;
+    exists: boolean;
+    and: boolean;
+    any: boolean;
+    like: boolean;
+    ilike: boolean;
+    jsonPath: boolean;
+    jsonType: boolean;
+  };
+  pagination: {
+    limit: boolean;
+    offset: boolean;
+    cursor: boolean;
+    order: boolean;
+  };
+  mutation: {
+    insert: boolean;
+    insertBatchAtomic: boolean;
+    upsert: boolean;
+    updateByFilter: boolean;
+    removeByFilter: boolean;
+  };
+  count: boolean;
+  transaction: boolean;
+  drop: boolean;
+};
