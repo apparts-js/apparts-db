@@ -2,7 +2,7 @@
 #+DATE: [2021-03-25 Thu]
 #+AUTHOR: Philipp Uhl
 
-Database abstraction layer for Node.js with support for multiple database engines. Currently supports *PostgreSQL*.
+Database abstraction layer for Node.js with support for multiple database engines. Currently supports *PostgreSQL* and *DynamoDB*.
 
 ** Installation
 
@@ -12,8 +12,16 @@ npm install @apparts/db
 
 You also need to install the driver for your database:
 
+For PostgreSQL:
+
 #+BEGIN_SRC bash
 npm install pg
+#+END_SRC
+
+For DynamoDB:
+
+#+BEGIN_SRC bash
+npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 #+END_SRC
 
 ** Quick Start
@@ -21,6 +29,7 @@ npm install pg
 #+BEGIN_SRC typescript
 import { connect } from "@apparts/db";
 
+// PostgreSQL
 const dbs = await connect({
   use: "postgresql",
   postgresql: {
@@ -29,6 +38,16 @@ const dbs = await connect({
     user: "dbuser",
     pw: "dbpassword",
     db: "mydatabase",
+  },
+});
+
+// DynamoDB
+const dbs = await connect({
+  use: "dynamodb",
+  dynamodb: {
+    region: "us-east-1",
+    accessKeyId: "your-access-key",
+    secretAccessKey: "your-secret-key",
   },
 });
 
@@ -44,8 +63,9 @@ The ~connect~ function takes a config object specifying which database engine to
 
 #+BEGIN_SRC typescript
 interface Config {
-  use: "postgresql"; // Database engine to use
-  postgresql: PGConfig;
+  use: "postgresql" | "dynamodb"; // Database engine to use
+  postgresql?: PGConfig;
+  dynamodb?: DynamoConfig;
 }
 #+END_SRC
 
@@ -69,6 +89,30 @@ interface PGConfig {
   poolConfig?: PoolConfig;         // Additional pg.Pool config
 }
 #+END_SRC
+
+*** DynamoDB Configuration
+
+#+BEGIN_SRC typescript
+interface DynamoConfig {
+  region: string;                  // AWS region (e.g. "us-east-1", "local")
+  accessKeyId?: string;            // AWS access key (omit to use default credential chain)
+  secretAccessKey?: string;        // AWS secret key (omit to use default credential chain)
+  sessionToken?: string;           // AWS session token for temporary credentials
+  endpoint?: string;               // Custom endpoint (e.g. DynamoDB Local: "http://localhost:8000")
+  logs?: "errors";                 // Log mode: "errors" to log failed queries
+  logParams?: boolean;             // Include params in error logs
+}
+#+END_SRC
+
+*** DynamoDB Engine Notes
+
+- *Primary key*: DynamoDB requires an explicit primary key on every insert. The driver uses ~"id"~ as the primary key field name. There is no auto-generation — callers must supply their own ~id~ value on every ~insert~.
+- *Single-row insert*: ~Query.insert~ only accepts a single row at a time on DynamoDB (multi-row Put is not atomic). For multi-row writes, use ~insertOrUpdate~ (upsert semantics) or stage writes inside a ~transaction~ for atomicity.
+- *No ordering or offset*: DynamoDB Scan/Query has no SKIP or server-side ORDER semantics. ~find~ with ~order~ or ~offset~ throws ~NotSupportedByDBEngine~.
+- *No table drop*: Tables cannot be dropped via the query builder. Use the DynamoDB control-plane API directly.
+- *Reads inside transactions*: Reads inside a DynamoDB transaction throw ~NotSupportedByDBEngine~ because buffered writes are not visible until commit. Commit first, then read via the outer ~DBS~.
+- *Filter operators*: The following operators are supported: ~=~, ~exists~, ~in~, ~notin~, ~lt~, ~lte~, ~gt~, ~gte~, ~and~, and ~null~ shorthand (matches absent or NULL-typed attributes). ~like~, ~ilike~, ~of~, and ~oftype~ are not supported.
+- *raw*: ~DBS.raw~ and ~Transaction.raw~ forward verified DynamoDB DocumentClient requests (Scan, Query, GetItem, PutItem, UpdateItem, DeleteItem, BatchGet, BatchWrite) instead of SQL.
 
 ** API
 
