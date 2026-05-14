@@ -13,7 +13,7 @@ import { connectDynamo, DynamoConfig } from "../dynamodb";
 export const buildConfig = (): DynamoConfig => {
   if (process.env.DYNAMODB_TEST_CONFIG) {
     return JSON.parse(
-      Buffer.from(process.env.DYNAMODB_TEST_CONFIG, "base64").toString("utf-8"),
+      Buffer.from(process.env.DYNAMODB_TEST_CONFIG, "base64").toString("utf-8")
     );
   }
   return {
@@ -45,7 +45,7 @@ export const ensureTable = async (tableName: string) => {
       await client.send(new DeleteTableCommand({ TableName: tableName }));
       await waitUntilTableNotExists(
         { client, maxWaitTime: WAIT_SECONDS },
-        { TableName: tableName },
+        { TableName: tableName }
       );
     } catch (e) {
       if (!(e instanceof ResourceNotFoundException)) throw e;
@@ -56,11 +56,11 @@ export const ensureTable = async (tableName: string) => {
         AttributeDefinitions: [{ AttributeName: "id", AttributeType: "S" }],
         KeySchema: [{ AttributeName: "id", KeyType: "HASH" }],
         BillingMode: "PAY_PER_REQUEST",
-      }),
+      })
     );
     await waitUntilTableExists(
       { client, maxWaitTime: WAIT_SECONDS },
-      { TableName: tableName },
+      { TableName: tableName }
     );
   } finally {
     client.destroy();
@@ -78,7 +78,7 @@ export const dropTable = async (tableName: string) => {
     }
     await waitUntilTableNotExists(
       { client, maxWaitTime: WAIT_SECONDS },
-      { TableName: tableName },
+      { TableName: tableName }
     );
   } finally {
     client.destroy();

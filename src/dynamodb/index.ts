@@ -17,7 +17,7 @@ export const createClient = (c: DynamoConfig): DynamoDBClient => {
   const hasSecretKey = Boolean(c.secretAccessKey);
   if (hasAccessKey !== hasSecretKey) {
     throw new Error(
-      "DynamoConfig: both accessKeyId and secretAccessKey must be provided together, or neither (to use the AWS default credential chain).",
+      "DynamoConfig: both accessKeyId and secretAccessKey must be provided together, or neither (to use the AWS default credential chain)."
     );
   }
   if (hasAccessKey && hasSecretKey) {

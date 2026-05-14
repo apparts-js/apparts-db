@@ -63,7 +63,7 @@ const buildOperator = (
   op: string,
   val: unknown,
   attrNames: Record<string, string>,
-  attrValues: Record<string, unknown>,
+  attrValues: Record<string, unknown>
 ): OperatorResult => {
   switch (op) {
     case "exists": {
@@ -122,7 +122,7 @@ const buildOperator = (
     }
     case "and": {
       const sub = (val as { op: string; val: unknown }[]).map((v) =>
-        buildOperator(attr, v.op, v.val, attrNames, attrValues),
+        buildOperator(attr, v.op, v.val, attrNames, attrValues)
       );
       if (sub.some((r) => r.kind === "always_false"))
         return { kind: "always_false" };
@@ -135,19 +135,19 @@ const buildOperator = (
     case "like":
     case "ilike":
       throw new NotSupportedByDBEngine(
-        `Query filter operator "${op}" is not supported by DynamoDB.`,
+        `Query filter operator "${op}" is not supported by DynamoDB.`
       );
     case "of":
       throw new NotSupportedByDBEngine(
-        `Query filter operator "of" (nested JSON path) is not supported by DynamoDB.`,
+        `Query filter operator "of" (nested JSON path) is not supported by DynamoDB.`
       );
     case "oftype":
       throw new NotSupportedByDBEngine(
-        `Query filter operator "oftype" is not supported by DynamoDB.`,
+        `Query filter operator "oftype" is not supported by DynamoDB.`
       );
     default:
       throw new NotSupportedByDBEngine(
-        `Query filter operator "${op}" is not supported by DynamoDB.`,
+        `Query filter operator "${op}" is not supported by DynamoDB.`
       );
   }
 };
@@ -203,7 +203,7 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
 };
 
 const extractPrimaryKeyList = (
-  params: Params,
+  params: Params
 ): { hit: boolean; keys?: (string | number)[] } => {
   const keys = Object.keys(params);
   if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
@@ -230,7 +230,7 @@ class Query extends GenericQuery {
   constructor(
     client: DynamoDBDocumentClient,
     table: string,
-    dbs: { config: DynamoConfig; log: LogFunc },
+    dbs: { config: DynamoConfig; log: LogFunc }
   ) {
     super();
     this._client = client;
@@ -243,7 +243,7 @@ class Query extends GenericQuery {
   find(params: Params, limit?: number, offset?: number, order?: Order): this {
     if (order && order.length > 0) {
       throw new NotSupportedByDBEngine(
-        "Query.find: ordering on Scan results is not supported by DynamoDB.",
+        "Query.find: ordering on Scan results is not supported by DynamoDB."
       );
     }
     if (offset && offset > 0) {
@@ -253,7 +253,7 @@ class Query extends GenericQuery {
           "limit-only and either (a) re-run the query with a tighter " +
           "filter on the next page's first key, or (b) call findByIds " +
           "with a known id list, or (c) fetch with limit and slice " +
-          "client-side for small result sets.",
+          "client-side for small result sets."
       );
     }
     this._state = { params, limit, offset, order };
@@ -287,7 +287,7 @@ class Query extends GenericQuery {
           new GetCommand({
             TableName: this._table,
             Key: { [PK]: single.key },
-          }),
+          })
         );
         return (res.Item ? [res.Item as T] : []) as T[];
       } catch (e) {
@@ -308,7 +308,7 @@ class Query extends GenericQuery {
           const res = await this._client.send(
             new BatchGetCommand({
               RequestItems: { [this._table]: { Keys: pending } },
-            }),
+            })
           );
           rows.push(...((res.Responses?.[this._table] ?? []) as T[]));
           const next = res.UnprocessedKeys?.[this._table]?.Keys;
@@ -366,7 +366,7 @@ class Query extends GenericQuery {
 
   _buildScanInput(
     params: Params,
-    limit?: number,
+    limit?: number
   ): { kind: "always_false" } | { kind: "input"; input: ScanCommandInput } {
     const filter = buildFilterExpression(params);
     if (filter.kind === "always_false") return { kind: "always_false" };
@@ -391,7 +391,7 @@ class Query extends GenericQuery {
 
   async insert(
     content: Record<string, unknown>[],
-    returning: string[] = [PK],
+    returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
     if (content.length === 0) return [];
 
@@ -405,14 +405,14 @@ class Query extends GenericQuery {
         "Query.insert: multi-row insert is not supported by DynamoDB " +
           "(no atomic multi-row Put). Insert one row at a time, use " +
           "insertOrUpdate for upsert semantics, or use insert in " +
-          "a transaction for atomicity.",
+          "a transaction for atomicity."
       );
     }
 
     const item = content[0];
     if (item[PK] === undefined || item[PK] === null) {
       throw new NotSupportedByDBEngine(
-        `Query.insert: DynamoDB does not auto-generate primary keys; item is missing "${PK}".`,
+        `Query.insert: DynamoDB does not auto-generate primary keys; item is missing "${PK}".`
       );
     }
 
@@ -426,7 +426,7 @@ class Query extends GenericQuery {
           Item: item,
           ConditionExpression: "attribute_not_exists(#pk)",
           ExpressionAttributeNames: { "#pk": PK },
-        }),
+        })
       );
     } catch (e) {
       if (isConditionalCheckFailed(e)) {
@@ -448,16 +448,16 @@ class Query extends GenericQuery {
 
   async insertOrUpdate(
     content: Record<string, unknown>[],
-    returning: string[] = [PK],
+    returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
     if (content.length === 0) return [];
 
     const missingKey = content.findIndex(
-      (item) => item[PK] === undefined || item[PK] === null,
+      (item) => item[PK] === undefined || item[PK] === null
     );
     if (missingKey !== -1) {
       throw new NotSupportedByDBEngine(
-        `Query.insertOrUpdate: DynamoDB does not auto-generate primary keys; item at index ${missingKey} is missing "${PK}".`,
+        `Query.insertOrUpdate: DynamoDB does not auto-generate primary keys; item at index ${missingKey} is missing "${PK}".`
       );
     }
 
@@ -471,9 +471,9 @@ class Query extends GenericQuery {
             new PutCommand({
               TableName: this._table,
               Item,
-            }),
-          ),
-        ),
+            })
+          )
+        )
       );
     } catch (e) {
       this._log("Error in insertOrUpdate:", "PutItem", { content }, e);
@@ -491,21 +491,21 @@ class Query extends GenericQuery {
 
   async updateOne<T>(
     filter: Params,
-    c: { [p: string]: unknown },
+    c: { [p: string]: unknown }
   ): Promise<Result<T>> {
     return this.update<T>(filter, c);
   }
 
   async update<T>(
     filter: Params,
-    c: { [p: string]: unknown },
+    c: { [p: string]: unknown }
   ): Promise<Result<T>> {
     const single = isSinglePrimaryKeyLookup(filter);
     if (!single.hit) {
       throw new NotSupportedByDBEngine(
         `Query.update: DynamoDB UpdateItem requires a single primary key lookup on "${PK}"; got ${JSON.stringify(
-          filter,
-        )}.`,
+          filter
+        )}.`
       );
     }
 
@@ -533,8 +533,8 @@ class Query extends GenericQuery {
     if (!single.hit && !batch.hit) {
       throw new NotSupportedByDBEngine(
         `Query.remove: DynamoDB DeleteItem requires a primary key (single or array) on "${PK}"; got ${JSON.stringify(
-          params,
-        )}.`,
+          params
+        )}.`
       );
     }
 
@@ -544,7 +544,7 @@ class Query extends GenericQuery {
           new DeleteCommand({
             TableName: this._table,
             Key: { [PK]: single.key },
-          }),
+          })
         );
         return { rows: [] as T[], rowCount: 1 };
       } catch (e) {
@@ -571,7 +571,7 @@ class Query extends GenericQuery {
           const res = await this._client.send(
             new BatchWriteCommand({
               RequestItems: { [this._table]: pending },
-            }),
+            })
           );
           const next = res.UnprocessedItems?.[this._table];
           pending = Array.isArray(next) ? (next as typeof pending) : [];
@@ -586,7 +586,7 @@ class Query extends GenericQuery {
 
   async drop(): Promise<void> {
     throw new NotSupportedByDBEngine(
-      "Query.drop: DynamoDB tables cannot be dropped through the query builder; use the DynamoDB control-plane API directly.",
+      "Query.drop: DynamoDB tables cannot be dropped through the query builder; use the DynamoDB control-plane API directly."
     );
   }
 }

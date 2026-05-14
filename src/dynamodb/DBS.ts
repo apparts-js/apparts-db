@@ -43,7 +43,7 @@ class DBS extends Queriable implements GenericDBS {
   constructor(
     client: DynamoDBDocumentClient,
     rawClient: DynamoDBClient,
-    config: DynamoConfig,
+    config: DynamoConfig
   ) {
     super();
     this._client = client;
@@ -85,14 +85,14 @@ class DBS extends Queriable implements GenericDBS {
     if (!factory) {
       throw new NotSupportedByDBEngine(
         `DBS.raw: unknown DynamoDB operation "${query}". Supported: ${Object.keys(
-          RAW_COMMAND_FACTORIES,
-        ).join(", ")}.`,
+          RAW_COMMAND_FACTORIES
+        ).join(", ")}.`
       );
     }
     const input = params?.[0];
     if (typeof input !== "object" || input === null || Array.isArray(input)) {
       throw new NotSupportedByDBEngine(
-        `DBS.raw: DynamoDB ${query} requires a single plain-object input as params[0].`,
+        `DBS.raw: DynamoDB ${query} requires a single plain-object input as params[0].`
       );
     }
     try {

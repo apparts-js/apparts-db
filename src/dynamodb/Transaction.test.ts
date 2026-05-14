@@ -35,7 +35,7 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           await t.collection(TEST_TABLE).insert([{ id: "tx-dup", number: 99 }]);
-        }),
+        })
       ).rejects.toThrow();
       const rows = await dbs
         .collection(TEST_TABLE)
@@ -51,7 +51,7 @@ describe("DynamoDB Transaction", () => {
         dbs.transaction(async (t) => {
           await t.collection(TEST_TABLE).insert([{ id: "tx-2", number: 1 }]);
           throw new Error("rollback!");
-        }),
+        })
       ).rejects.toThrow("rollback!");
       const rows = await dbs
         .collection(TEST_TABLE)
@@ -74,7 +74,7 @@ describe("DynamoDB Transaction", () => {
             .update({ id: "tx-roll-upd" }, { number: 2 });
           await t.collection(TEST_TABLE).remove({ id: "tx-roll-rm" });
           throw new Error("abort");
-        }),
+        })
       ).rejects.toThrow("abort");
       const rows = await dbs
         .collection(TEST_TABLE)
@@ -122,7 +122,7 @@ describe("DynamoDB Transaction", () => {
           await t
             .collection(TEST_TABLE)
             .update({ id: "tx-missing" }, { number: 99 });
-        }),
+        })
       ).rejects.toThrow();
       const rows = await dbs
         .collection(TEST_TABLE)
@@ -135,7 +135,7 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           await t.collection(TEST_TABLE).update({ number: 1 }, { tag: "x" });
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
 
@@ -173,7 +173,7 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           await t.collection(TEST_TABLE).remove({ tag: "x" });
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -197,7 +197,7 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           await t.raw("SELECT 1");
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -207,17 +207,17 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           t.collection(TEST_TABLE).find({});
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
       await expect(
         dbs.transaction(async (t) => {
           t.collection(TEST_TABLE).findById({ id: "x" });
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
       await expect(
         dbs.transaction(async (t) => {
           await t.collection(TEST_TABLE).count();
-        }),
+        })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -243,7 +243,7 @@ describe("DynamoDB Transaction", () => {
       await expect(
         dbs.transaction(async (t) => {
           await (t as Transaction).transaction();
-        }),
+        })
       ).rejects.toThrow("Can not start new transaction in transaction");
     });
   });

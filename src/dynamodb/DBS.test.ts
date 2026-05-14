@@ -16,25 +16,25 @@ describe("DynamoDB DBS unsupported operations", () => {
 
   test("raw with an unknown operation rejects with NotSupportedByDBEngine", async () => {
     await expect(dbs.raw("SELECT 1")).rejects.toBeInstanceOf(
-      NotSupportedByDBEngine,
+      NotSupportedByDBEngine
     );
     await expect(
-      dbs.raw("NotARealCommand", [{ TableName: "x" }]),
+      dbs.raw("NotARealCommand", [{ TableName: "x" }])
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
   test("raw rejects when params[0] is not a plain-object input", async () => {
     await expect(dbs.raw("Scan")).rejects.toBeInstanceOf(
-      NotSupportedByDBEngine,
+      NotSupportedByDBEngine
     );
     await expect(
-      dbs.raw("Scan", [null as unknown as object]),
+      dbs.raw("Scan", [null as unknown as object])
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     await expect(
-      dbs.raw("Scan", ["string" as unknown as object]),
+      dbs.raw("Scan", ["string" as unknown as object])
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     await expect(
-      dbs.raw("Scan", [[] as unknown as object]),
+      dbs.raw("Scan", [[] as unknown as object])
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
@@ -93,10 +93,10 @@ describe("DynamoDB DBS.raw forwards typed requests", () => {
 describe("createClient credential validation", () => {
   test("rejects configs where only one of accessKeyId / secretAccessKey is set", () => {
     expect(() =>
-      createClient({ region: "local", accessKeyId: "only-access" }),
+      createClient({ region: "local", accessKeyId: "only-access" })
     ).toThrow(/both accessKeyId and secretAccessKey/);
     expect(() =>
-      createClient({ region: "local", secretAccessKey: "only-secret" }),
+      createClient({ region: "local", secretAccessKey: "only-secret" })
     ).toThrow(/both accessKeyId and secretAccessKey/);
   });
 
@@ -110,7 +110,7 @@ describe("createClient credential validation", () => {
         region: "local",
         accessKeyId: "a",
         secretAccessKey: "b",
-      }),
+      })
     ).not.toThrow();
   });
 });

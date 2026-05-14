@@ -41,14 +41,14 @@ describe("DynamoDB Query CRUD", () => {
       await expect(
         dbs
           .collection(TEST_TABLE)
-          .insert([{ id: "multi-1" }, { id: "multi-2" }]),
+          .insert([{ id: "multi-1" }, { id: "multi-2" }])
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
 
     test("insert rejects duplicate primary keys with _code: 1", async () => {
       await dbs.collection(TEST_TABLE).insert([{ id: "dup", number: 1 }]);
       await expect(
-        dbs.collection(TEST_TABLE).insert([{ id: "dup", number: 2 }]),
+        dbs.collection(TEST_TABLE).insert([{ id: "dup", number: 2 }])
       ).rejects.toMatchObject({
         msg: "ERROR, tried to insert, not unique",
         _code: 1,
@@ -64,7 +64,7 @@ describe("DynamoDB Query CRUD", () => {
       await expect(
         dbs
           .collection(TEST_TABLE)
-          .insert([{ number: 1 } as Record<string, unknown>]),
+          .insert([{ number: 1 } as Record<string, unknown>])
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -92,7 +92,7 @@ describe("DynamoDB Query CRUD", () => {
       await expect(
         dbs
           .collection(TEST_TABLE)
-          .insertOrUpdate([{ number: 1 } as Record<string, unknown>]),
+          .insertOrUpdate([{ number: 1 } as Record<string, unknown>])
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -187,7 +187,7 @@ describe("DynamoDB Query CRUD", () => {
 
     test("update with a non-primary-key filter throws NotSupportedByDBEngine", async () => {
       await expect(
-        dbs.collection(TEST_TABLE).update({ number: 1 }, { tag: "x" }),
+        dbs.collection(TEST_TABLE).update({ number: 1 }, { tag: "x" })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -243,7 +243,7 @@ describe("DynamoDB Query CRUD", () => {
 
     test("remove with a non-primary-key filter throws NotSupportedByDBEngine", async () => {
       await expect(
-        dbs.collection(TEST_TABLE).remove({ tag: "x" }),
+        dbs.collection(TEST_TABLE).remove({ tag: "x" })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
 
@@ -251,7 +251,7 @@ describe("DynamoDB Query CRUD", () => {
       await expect(
         dbs
           .collection(TEST_TABLE)
-          .remove({ id: { op: "gt", val: 1 } as unknown as Filter }),
+          .remove({ id: { op: "gt", val: 1 } as unknown as Filter })
       ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
     });
   });
@@ -319,7 +319,7 @@ describe("DynamoDB Query filter operators via Scan", () => {
   test("notin with empty array drops the clause (returns all rows)", async () => {
     const allIds = await ids(p({ tag: { op: "notin", val: [] } }));
     expect(allIds.sort()).toEqual(
-      expect.arrayContaining(["x1", "x2", "x3", "x4"]),
+      expect.arrayContaining(["x1", "x2", "x3", "x4"])
     );
   });
 
@@ -344,7 +344,7 @@ describe("DynamoDB Query filter operators via Scan", () => {
             { op: "lte", val: 10 },
           ] as Filter[],
         },
-      }),
+      })
     ).toEqual(["x2", "x3"]);
   });
 
@@ -390,7 +390,7 @@ describe("DynamoDB Query unsupported operations", () => {
       dbs
         .collection(UNSUP_TABLE)
         .find({ id: { op: "like", val: "%" } })
-        .toArray(),
+        .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
@@ -399,7 +399,7 @@ describe("DynamoDB Query unsupported operations", () => {
       dbs
         .collection(UNSUP_TABLE)
         .find({ id: { op: "ilike", val: "%" } })
-        .toArray(),
+        .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
@@ -410,7 +410,7 @@ describe("DynamoDB Query unsupported operations", () => {
         .find({
           id: { op: "oftype", val: { path: ["x"], value: "string" } },
         })
-        .toArray(),
+        .toArray()
     ).rejects.toBeInstanceOf(NotSupportedByDBEngine);
   });
 
@@ -418,13 +418,13 @@ describe("DynamoDB Query unsupported operations", () => {
     expect(() =>
       dbs
         .collection(UNSUP_TABLE)
-        .find({}, undefined, undefined, [{ key: "number", dir: "ASC" }]),
+        .find({}, undefined, undefined, [{ key: "number", dir: "ASC" }])
     ).toThrow(NotSupportedByDBEngine);
   });
 
   test("find with a numeric offset throws NotSupportedByDBEngine", () => {
     expect(() => dbs.collection(UNSUP_TABLE).find({}, undefined, 10)).toThrow(
-      NotSupportedByDBEngine,
+      NotSupportedByDBEngine
     );
   });
 });

@@ -2,5 +2,5 @@ export type LogFunc = (
   message: string,
   operation: string,
   params: unknown,
-  error: unknown,
+  error: unknown
 ) => void;

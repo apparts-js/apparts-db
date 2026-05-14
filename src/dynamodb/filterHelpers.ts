@@ -4,7 +4,7 @@ const PK = "id";
 
 export const namePlaceholder = (
   attr: string,
-  attrNames: Record<string, string>,
+  attrNames: Record<string, string>
 ): string => {
   const key = `#n${Object.keys(attrNames).length}`;
   attrNames[key] = attr;
@@ -13,7 +13,7 @@ export const namePlaceholder = (
 
 export const valuePlaceholder = (
   value: unknown,
-  attrValues: Record<string, unknown>,
+  attrValues: Record<string, unknown>
 ): string => {
   const key = `:v${Object.keys(attrValues).length}`;
   attrValues[key] = value;
@@ -21,7 +21,7 @@ export const valuePlaceholder = (
 };
 
 export const isSinglePrimaryKeyLookup = (
-  params: Params,
+  params: Params
 ): { hit: boolean; key?: string | number } => {
   const keys = Object.keys(params);
   if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
@@ -38,7 +38,7 @@ export const isSinglePrimaryKeyLookup = (
 export const buildUpdateInput = (
   table: string,
   pkValue: string | number,
-  c: Record<string, unknown>,
+  c: Record<string, unknown>
 ): {
   TableName: string;
   Key: Record<string, string | number>;
