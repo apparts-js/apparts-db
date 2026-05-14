@@ -8,7 +8,7 @@ export abstract class GenericQueriable {
   abstract toId(id: Id): Id;
   abstract collection(col: string): GenericQuery;
   abstract transaction<T>(
-    fn: (t: GenericTransaction) => Promise<T>,
+    fn: (t: GenericTransaction) => Promise<T>
   ): Promise<T>;
   abstract raw<T>(query: string, params?: unknown[]): Promise<Result<T>>;
 }

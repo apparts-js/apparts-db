@@ -6,5 +6,5 @@ export type LogFunc = (
   message: string,
   query: string,
   params: Params | unknown[] | null,
-  error: unknown,
+  error: unknown
 ) => void;
