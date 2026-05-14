@@ -350,7 +350,7 @@ class Query extends GenericQuery {
       });
   }
 
-  async insertOrUpdate(content: any[], returning = ["id"]) {
+  async insertOrUpdate(content: Record<string, unknown>[], returning = ["id"]) {
     if (content.length === 0) {
       return Promise.resolve([]);
     }

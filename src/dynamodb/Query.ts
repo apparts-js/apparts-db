@@ -77,14 +77,18 @@ const buildOperator = (
     }
     case "in": {
       const vals = val as (string | number | boolean | null)[];
-      if (vals.length === 0) return { kind: "always_false" };
+      if (vals.length === 0) {
+        return { kind: "always_false" };
+      }
       const n = namePlaceholder(attr, attrNames);
       const placeholders = vals.map((v) => valuePlaceholder(v, attrValues));
       return { kind: "expr", expr: `${n} IN (${placeholders.join(", ")})` };
     }
     case "notin": {
       const vals = val as (string | number | boolean | null)[];
-      if (vals.length === 0) return { kind: "always_true" };
+      if (vals.length === 0) {
+        return { kind: "always_true" };
+      }
       const n = namePlaceholder(attr, attrNames);
       const placeholders = vals.map((v) => valuePlaceholder(v, attrValues));
       return {
@@ -124,12 +128,15 @@ const buildOperator = (
       const sub = (val as { op: string; val: unknown }[]).map((v) =>
         buildOperator(attr, v.op, v.val, attrNames, attrValues)
       );
-      if (sub.some((r) => r.kind === "always_false"))
+      if (sub.some((r) => r.kind === "always_false")) {
         return { kind: "always_false" };
+      }
       const exprs = sub
         .filter((r): r is { kind: "expr"; expr: string } => r.kind === "expr")
         .map((r) => r.expr);
-      if (exprs.length === 0) return { kind: "always_true" };
+      if (exprs.length === 0) {
+        return { kind: "always_true" };
+      }
       return { kind: "expr", expr: `(${exprs.join(" AND ")})` };
     }
     case "like":
@@ -176,7 +183,9 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
       continue;
     }
     if (Array.isArray(val)) {
-      if (val.length === 0) return { kind: "always_false" };
+      if (val.length === 0) {
+        return { kind: "always_false" };
+      }
       const n = namePlaceholder(key, attrNames);
       const placeholders = val.map((v) => valuePlaceholder(v, attrValues));
       clauses.push(`${n} IN (${placeholders.join(", ")})`);
@@ -184,8 +193,12 @@ export const buildFilterExpression = (params: Params): FilterExprResult => {
     }
     const filter = val as Filter;
     const r = buildOperator(key, filter.op, filter.val, attrNames, attrValues);
-    if (r.kind === "always_false") return { kind: "always_false" };
-    if (r.kind === "always_true") continue;
+    if (r.kind === "always_false") {
+      return { kind: "always_false" };
+    }
+    if (r.kind === "always_true") {
+      continue;
+    }
     clauses.push(r.expr);
   }
   if (clauses.length === 0) {
@@ -206,7 +219,9 @@ const extractPrimaryKeyList = (
   params: Params
 ): { hit: boolean; keys?: (string | number)[] } => {
   const keys = Object.keys(params);
-  if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
+  if (keys.length !== 1 || keys[0] !== PK) {
+    return { hit: false };
+  }
   const v = params[PK];
   if (Array.isArray(v)) {
     return { hit: true, keys: v as (string | number)[] };
@@ -298,7 +313,9 @@ class Query extends GenericQuery {
 
     const batch = extractPrimaryKeyList(params);
     if (batch.hit && batch.keys) {
-      if (batch.keys.length === 0) return [];
+      if (batch.keys.length === 0) {
+        return [];
+      }
       try {
         const rows: T[] = [];
         let pending: Record<string, unknown>[] = batch.keys.map((k) => ({
@@ -324,15 +341,21 @@ class Query extends GenericQuery {
     }
 
     const scanInput = this._buildScanInput(params, limit);
-    if (scanInput.kind === "always_false") return [];
+    if (scanInput.kind === "always_false") {
+      return [];
+    }
     try {
       const rows: T[] = [];
       let startKey: Record<string, unknown> | undefined;
       do {
-        if (startKey) scanInput.input.ExclusiveStartKey = startKey;
+        if (startKey) {
+          scanInput.input.ExclusiveStartKey = startKey;
+        }
         const res = await this._client.send(new ScanCommand(scanInput.input));
         rows.push(...((res.Items ?? []) as T[]));
-        if (limit && rows.length >= limit) return rows.slice(0, limit);
+        if (limit && rows.length >= limit) {
+          return rows.slice(0, limit);
+        }
         startKey = res.LastEvaluatedKey;
       } while (startKey);
       return rows;
@@ -345,16 +368,22 @@ class Query extends GenericQuery {
   async count(): Promise<number> {
     const { params, limit } = this._state;
     const scanInput = this._buildScanInput(params, limit);
-    if (scanInput.kind === "always_false") return 0;
+    if (scanInput.kind === "always_false") {
+      return 0;
+    }
     scanInput.input.Select = "COUNT";
     try {
       let total = 0;
       let startKey: Record<string, unknown> | undefined;
       do {
-        if (startKey) scanInput.input.ExclusiveStartKey = startKey;
+        if (startKey) {
+          scanInput.input.ExclusiveStartKey = startKey;
+        }
         const res = await this._client.send(new ScanCommand(scanInput.input));
         total += res.Count ?? 0;
-        if (limit && total >= limit) return limit;
+        if (limit && total >= limit) {
+          return limit;
+        }
         startKey = res.LastEvaluatedKey;
       } while (startKey);
       return total;
@@ -369,7 +398,9 @@ class Query extends GenericQuery {
     limit?: number
   ): { kind: "always_false" } | { kind: "input"; input: ScanCommandInput } {
     const filter = buildFilterExpression(params);
-    if (filter.kind === "always_false") return { kind: "always_false" };
+    if (filter.kind === "always_false") {
+      return { kind: "always_false" };
+    }
     const input: ScanCommandInput = { TableName: this._table };
     if (filter.kind === "expr") {
       input.FilterExpression = filter.expr;
@@ -393,7 +424,9 @@ class Query extends GenericQuery {
     content: Record<string, unknown>[],
     returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
-    if (content.length === 0) return [];
+    if (content.length === 0) {
+      return [];
+    }
 
     // DynamoDB has no atomic multi-row PutItem, and individual Puts can
     // partially fail in unpredictable ways. Rather than expose the user
@@ -450,7 +483,9 @@ class Query extends GenericQuery {
     content: Record<string, unknown>[],
     returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
-    if (content.length === 0) return [];
+    if (content.length === 0) {
+      return [];
+    }
 
     const missingKey = content.findIndex(
       (item) => item[PK] === undefined || item[PK] === null

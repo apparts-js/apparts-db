@@ -24,10 +24,16 @@ export const isSinglePrimaryKeyLookup = (
   params: Params
 ): { hit: boolean; key?: string | number } => {
   const keys = Object.keys(params);
-  if (keys.length !== 1 || keys[0] !== PK) return { hit: false };
+  if (keys.length !== 1 || keys[0] !== PK) {
+    return { hit: false };
+  }
   const v = params[PK];
-  if (v === null) return { hit: false };
-  if (typeof v === "object") return { hit: false };
+  if (v === null) {
+    return { hit: false };
+  }
+  if (typeof v === "object") {
+    return { hit: false };
+  }
   return { hit: true, key: v as string | number };
 };
 
@@ -48,7 +54,9 @@ export const buildUpdateInput = (
   ExpressionAttributeValues: Record<string, unknown>;
 } | null => {
   const setKeys = Object.keys(c);
-  if (setKeys.length === 0) return null;
+  if (setKeys.length === 0) {
+    return null;
+  }
 
   const attrNames: Record<string, string> = { "#pk": PK };
   const attrValues: Record<string, unknown> = {};

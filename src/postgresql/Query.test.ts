@@ -792,7 +792,7 @@ describe("Remove", () => {
     const inserted = await dbs
       .collection("testTable2")
       .insert([{ testTableId: 3 }]);
-    expect(inserted.length).toBe(1);
+    expect(inserted).toHaveLength(1);
     expect(inserted[0].id).toBeDefined();
 
     await expect(

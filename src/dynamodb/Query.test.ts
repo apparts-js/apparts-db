@@ -135,7 +135,7 @@ describe("DynamoDB Query CRUD", () => {
         .collection(TEST_TABLE)
         .findByIds({ id: ["a", "b"] }, 1)
         .toArray();
-      expect(rows.length).toBe(1);
+      expect(rows).toHaveLength(1);
     });
   });
 

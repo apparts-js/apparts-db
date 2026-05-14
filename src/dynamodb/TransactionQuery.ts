@@ -81,7 +81,9 @@ class TransactionQuery extends Query {
     content: Record<string, unknown>[],
     returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
-    if (content.length === 0) return [];
+    if (content.length === 0) {
+      return [];
+    }
     const missingKey = content.findIndex(
       (item) => item[PK] === undefined || item[PK] === null
     );
@@ -119,7 +121,9 @@ class TransactionQuery extends Query {
     content: Record<string, unknown>[],
     returning: string[] = [PK]
   ): Promise<Record<string, Id>[]> {
-    if (content.length === 0) return [];
+    if (content.length === 0) {
+      return [];
+    }
     const missingKey = content.findIndex(
       (item) => item[PK] === undefined || item[PK] === null
     );
@@ -160,7 +164,9 @@ class TransactionQuery extends Query {
       );
     }
     const input = buildUpdateInput(this._table, single.key!, c);
-    if (input === null) return { rows: [] as T[], rowCount: 0 };
+    if (input === null) {
+      return { rows: [] as T[], rowCount: 0 };
+    }
     this._writes.push({ Update: input });
     return { rows: [] as T[], rowCount: 1 };
   }

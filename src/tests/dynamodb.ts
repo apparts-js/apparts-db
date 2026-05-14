@@ -48,7 +48,9 @@ export const ensureTable = async (tableName: string) => {
         { TableName: tableName }
       );
     } catch (e) {
-      if (!(e instanceof ResourceNotFoundException)) throw e;
+      if (!(e instanceof ResourceNotFoundException)) {
+        throw e;
+      }
     }
     await client.send(
       new CreateTableCommand({
@@ -73,7 +75,9 @@ export const dropTable = async (tableName: string) => {
     try {
       await client.send(new DeleteTableCommand({ TableName: tableName }));
     } catch (e) {
-      if (!(e instanceof ResourceNotFoundException)) throw e;
+      if (!(e instanceof ResourceNotFoundException)) {
+        throw e;
+      }
       return;
     }
     await waitUntilTableNotExists(

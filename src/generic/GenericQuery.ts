@@ -26,7 +26,7 @@ export abstract class GenericQuery {
     returning?: Rs
   ): Promise<Record<string, Id>[]>;
   abstract insertOrUpdate<Rs extends string[]>(
-    content: any[],
+    content: Record<string, unknown>[],
     returning?: Rs
   ): Promise<Record<string, Id>[]>;
   abstract updateOne<T>(

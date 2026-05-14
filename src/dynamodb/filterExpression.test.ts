@@ -13,7 +13,9 @@ describe("buildFilterExpression", () => {
   test("single attribute equality", () => {
     const r = buildFilterExpression({ foo: "x" });
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("#n0 = :v0");
     expect(r.attrNames).toEqual({ "#n0": "foo" });
     expect(r.attrValues).toEqual({ ":v0": "x" });
@@ -22,7 +24,9 @@ describe("buildFilterExpression", () => {
   test("null shorthand renders (attribute_not_exists OR = null) to match absent and NULL-typed attributes", () => {
     const r = buildFilterExpression(p({ foo: null }));
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("(attribute_not_exists(#n0) OR #n0 = :v0)");
     expect(r.attrNames).toEqual({ "#n0": "foo" });
     expect(r.attrValues).toEqual({ ":v0": null });
@@ -31,7 +35,9 @@ describe("buildFilterExpression", () => {
   test("bare array on non-PK renders IN with placeholders", () => {
     const r = buildFilterExpression({ tag: ["a", "b"] });
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("#n0 IN (:v0, :v1)");
     expect(r.attrValues).toEqual({ ":v0": "a", ":v1": "b" });
   });
@@ -49,7 +55,9 @@ describe("buildFilterExpression", () => {
   test("{op:'in',val:[...]} non-empty renders IN with placeholders", () => {
     const r = buildFilterExpression({ tag: { op: "in", val: ["a", "b"] } });
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("#n0 IN (:v0, :v1)");
     expect(r.attrNames).toEqual({ "#n0": "tag" });
     expect(r.attrValues).toEqual({ ":v0": "a", ":v1": "b" });
@@ -63,7 +71,9 @@ describe("buildFilterExpression", () => {
       })
     );
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("#n0 = :v0");
     expect(r.attrNames).toEqual({ "#n0": "foo" });
   });
@@ -91,7 +101,9 @@ describe("buildFilterExpression", () => {
     for (const [op, sym] of cases) {
       const r = buildFilterExpression({ age: { op, val: 5 } });
       expect(r.kind).toBe("expr");
-      if (r.kind !== "expr") continue;
+      if (r.kind !== "expr") {
+        continue;
+      }
       expect(r.expr).toBe(`#n0 ${sym} :v0`);
       expect(r.attrValues).toEqual({ ":v0": 5 });
     }
@@ -119,7 +131,9 @@ describe("buildFilterExpression", () => {
       p({ tag: { op: "notin", val: ["a", "b"] } })
     );
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("NOT (#n0 IN (:v0, :v1))");
   });
 
@@ -134,7 +148,9 @@ describe("buildFilterExpression", () => {
       },
     });
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("(#n0 > :v0 AND #n1 <= :v1)");
     expect(r.attrValues).toEqual({ ":v0": 1, ":v1": 10 });
   });
@@ -165,7 +181,9 @@ describe("buildFilterExpression", () => {
       })
     );
     expect(r.kind).toBe("expr");
-    if (r.kind !== "expr") return;
+    if (r.kind !== "expr") {
+      return;
+    }
     expect(r.expr).toBe("(#n0 > :v0)");
   });
 

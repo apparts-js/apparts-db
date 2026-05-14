@@ -89,7 +89,9 @@ class Transaction extends Queriable implements GenericTransaction {
   }
 
   async commit(): Promise<void> {
-    if (this._finished) return;
+    if (this._finished) {
+      return;
+    }
     if (this._writes.length === 0) {
       this._finished = true;
       return;

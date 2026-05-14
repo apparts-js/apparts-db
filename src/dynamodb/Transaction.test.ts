@@ -229,7 +229,7 @@ describe("DynamoDB Transaction", () => {
       const items = Array.from({ length: 101 }, (_, i) => ({ id: `big-${i}` }));
       await q.insert(items);
       await expect(tx.commit()).rejects.toBeInstanceOf(NotSupportedByDBEngine);
-      expect(tx._writes.length).toBe(101);
+      expect(tx._writes).toHaveLength(101);
       const sample = await dbs
         .collection(TEST_TABLE)
         .findByIds({ id: ["big-0", "big-50", "big-100"] })
