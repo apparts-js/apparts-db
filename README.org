@@ -131,7 +131,7 @@ Closes the database connection pool.
 
 Query objects are created via ~dbs.collection("tableName")~.
 
-**** `find(params, limit?, offset?, order?): this`
+**** `find(params, pagination?): this`
 
 Find rows matching the given parameters.
 
@@ -139,22 +139,23 @@ Find rows matching the given parameters.
 // Simple equality
 await dbs.collection("users").find({ role: "admin" }).toArray();
 
-// With pagination and sorting
+// With Pagination object
 await dbs.collection("users")
-  .find({ active: true }, 10, 0, [{ key: "createdAt", dir: "DESC" }])
+  .find({ active: true }, { limit: 10, offset: 0, order: [{ key: "createdAt", dir: "DESC" }] })
   .toArray();
 #+END_SRC
 
-**** `findById(id, limit?, offset?, order?): this`
+**** `findById(id, pagination?): this`
 
 Alias for ~find~.
 
-**** `findByIds(ids, limit?, offset?, order?): this`
+**** `findByIds(ids, pagination?): this`
 
 Find rows where IDs match any value in the given arrays.
 
 #+BEGIN_SRC typescript
 await dbs.collection("users").findByIds({ id: [1, 2, 3] }).toArray();
+await dbs.collection("users").findByIds({ id: [1, 2, 3] }, { limit: 2 }).toArray();
 #+END_SRC
 
 **** `toArray<T>(): Promise<T[]>`
@@ -231,8 +232,38 @@ The object can contain these keys:
 #+BEGIN_SRC typescript
 // Order by a nested JSON property
 await dbs.collection("users")
-  .find({}, 10, 0, [{ key: "metadata", dir: "ASC", path: ["age"] }])
+  .find({}, { limit: 10, order: [{ key: "metadata", dir: "ASC", path: ["age"] }] })
   .toArray();
+#+END_SRC
+
+*** Pagination
+
+The ~find~, ~findById~, and ~findByIds~ methods accept an optional ~Pagination~ object
+as the second argument. The ~cursor~ field is reserved for future keyset pagination
+and currently throws an error if set.
+
+#+BEGIN_SRC typescript
+type PaginationCursor = string | Record<string, unknown>;
+
+type Pagination = {
+  limit?: number;
+  offset?: number;
+  order?: Order;
+  cursor?: PaginationCursor;
+};
+#+END_SRC
+
+*** Result
+
+~update~, ~updateOne~, and ~remove~ return a ~Result<T>~ object containing the affected
+rows and the count.
+
+#+BEGIN_SRC typescript
+type Result<T> = {
+  rows: T[];
+  rowCount?: number | null;
+  nextCursor?: PaginationCursor;
+};
 #+END_SRC
 
 *** Filters and Operators

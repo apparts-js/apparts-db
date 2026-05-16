@@ -23,7 +23,7 @@ export abstract class Queriable extends GenericQueriable {
     message: string,
     query: string,
     params: Params | unknown[] | null,
-    error: unknown
+    error: unknown,
   ) {
     if (this._config.logs === "errors") {
       if (this._config.logParams) {
@@ -34,7 +34,7 @@ export abstract class Queriable extends GenericQueriable {
           "\nPARAMS:\n",
           params,
           "\nERROR:\n",
-          error
+          error,
         );
       } else {
         console.log(message, "\nQUERY:\n", query, "\nERROR:\n", error);

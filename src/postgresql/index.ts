@@ -21,7 +21,7 @@ export const createPool = async (c: PGConfig) => {
     // What to do?
     console.log(
       `Postgres DB-connection failed for host ${c.host}:${c.port},` +
-        ` ${c.user}@${c.db} with ERROR: ${err}`
+        ` ${c.user}@${c.db} with ERROR: ${err}`,
     );
     throw err;
   });

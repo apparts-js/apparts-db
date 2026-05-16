@@ -41,9 +41,19 @@ export type Params = {
 export type Id = string | number;
 export type Order = { key: string; dir: "ASC" | "DESC"; path?: string[] }[];
 
+export type PaginationCursor = string | Record<string, unknown>;
+
+export type Pagination = {
+  limit?: number;
+  offset?: number;
+  order?: Order;
+  cursor?: PaginationCursor;
+};
+
 export type Result<T> = {
   rows: T[];
   rowCount?: number | null;
+  nextCursor?: PaginationCursor;
 };
 
 export type Capabilities = {
