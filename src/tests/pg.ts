@@ -3,7 +3,7 @@ import { connect } from "..";
 import config from "@apparts/config";
 import { GenericDBS } from "../generic";
 
-const _dbConfig = config.get("db-test-config");
+const _dbConfig = config.get("pg-test-config");
 const dbConfig = {
   ..._dbConfig,
   postgresql: {
