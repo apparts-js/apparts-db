@@ -44,7 +44,7 @@ class Query extends GenericQuery {
   constructor(
     pool: Pool | PoolClient,
     col: string,
-    dbs: { config: PGConfig; log: LogFunc },
+    dbs: { config: PGConfig; log: LogFunc }
   ) {
     super();
     this._dbs = pool;
@@ -81,7 +81,7 @@ class Query extends GenericQuery {
               const path = this._buildJsonPath(
                 `"${arr.key}"`,
                 arr.path || [],
-                newVals,
+                newVals
               );
               return ` ${path} ${arr.dir === "ASC" ? "ASC" : "DESC"} `;
             } else {
@@ -124,7 +124,7 @@ class Query extends GenericQuery {
             return this._decideOperator(key, filter.op, filter.val, newVals);
           } else {
             throw new Error(
-              `ERROR, unknown value type for key "${key}": ${val}`,
+              `ERROR, unknown value type for key "${key}": ${val}`
             );
           }
         })
@@ -136,11 +136,11 @@ class Query extends GenericQuery {
     key: string,
     path: string[],
     newVals: unknown[],
-    keepAsJson = false,
+    keepAsJson = false
   ) {
     if (path.length < 1) {
       throw new Error(
-        "ERROR, JSON path requires at least one path element. You submitted [].",
+        "ERROR, JSON path requires at least one path element. You submitted []."
       );
     }
 
@@ -171,7 +171,7 @@ class Query extends GenericQuery {
     op: Operator | string,
     val: unknown,
     newVals: unknown[],
-    keyIsQuoted = false,
+    keyIsQuoted = false
   ): string {
     if (!keyIsQuoted) {
       this._checkKey(key);
@@ -219,8 +219,8 @@ class Query extends GenericQuery {
               ofVal.cast === "number"
                 ? "double precision"
                 : ofVal.cast === "boolean"
-                  ? "bool"
-                  : "text"
+                ? "bool"
+                : "text"
             }`;
           }
           const nested = ofVal.value as { op: Operator | string; val: unknown };
@@ -229,7 +229,7 @@ class Query extends GenericQuery {
             nested.op,
             nested.val,
             newVals,
-            true,
+            true
           );
         } else {
           newVals.push(ofVal.value);
@@ -305,7 +305,7 @@ class Query extends GenericQuery {
     try {
       const result = await this._dbs.query<{ count: number }>(
         query,
-        this._params || [],
+        this._params || []
       );
       return result.rows[0].count;
     } catch (e) {
@@ -324,7 +324,7 @@ class Query extends GenericQuery {
 
   async insert(
     content: Record<string, unknown>[],
-    returning: string[] = ["id"],
+    returning: string[] = ["id"]
   ): Promise<Record<string, Id>[]> {
     if (content.length === 0) {
       return Promise.resolve([]);
@@ -338,7 +338,7 @@ class Query extends GenericQuery {
         (_, i) =>
           "(" +
           keys.map((_, j) => `$${i * keys.length + (j + 1)}`).join(",") +
-          ")",
+          ")"
       )
       .join(",");
     if (returning && returning.length > 0) {
@@ -372,14 +372,14 @@ class Query extends GenericQuery {
 
   async updateOne<T>(
     filter: Params,
-    c: Record<string, unknown>,
+    c: Record<string, unknown>
   ): Promise<Result<T>> {
     return this.update<T>(filter, c);
   }
 
   async update<T>(
     filter: Params,
-    c: Record<string, unknown>,
+    c: Record<string, unknown>
   ): Promise<Result<T>> {
     let q = `UPDATE "${this._table}" SET `;
     const keys = Object.keys(c);
@@ -404,7 +404,7 @@ class Query extends GenericQuery {
     } catch (e) {
       if ((e as { code: string }).code === "23505") {
         return Promise.reject(
-          new UniqueConstraintViolation("ERROR, tried to update, not unique"),
+          new UniqueConstraintViolation("ERROR, tried to update, not unique")
         );
       }
 

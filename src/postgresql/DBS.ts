@@ -112,7 +112,7 @@ class DBS extends Queriable implements GenericDBS {
       notNull?: boolean;
       default?: string;
     }[],
-    prefix?: string,
+    prefix?: string
   ) {
     if (prefix) {
       prefix += "_";
@@ -137,24 +137,24 @@ class DBS extends Queriable implements GenericDBS {
           (i) =>
             `CONSTRAINT "${prefix}${name}_${i.name}_pkey" PRIMARY KEY (` +
             i.key.map((k) => `"${k}"`).join(",") +
-            ")",
+            ")"
         ),
       ...indexes
         .filter((i) => i.unique)
         .map(
           (i) =>
-            `CONSTRAINT "${prefix}${name}_${i.name}_u" UNIQUE ("${i.name}")`,
+            `CONSTRAINT "${prefix}${name}_${i.name}_u" UNIQUE ("${i.name}")`
         ),
       ...indexes
         .filter(
           (i): i is typeof i & { foreign: { table: string; field: string } } =>
-            i.foreign !== undefined,
+            i.foreign !== undefined
         )
         .map(
           (i) =>
             `CONSTRAINT "${prefix}${name}_${i.name}_fkey" FOREIGN KEY ` +
             `("${i.name}") REFERENCES "${i.foreign.table}" ` +
-            `(${i.foreign.field}) MATCH SIMPLE`,
+            `(${i.foreign.field}) MATCH SIMPLE`
         ),
     ];
     q += parts.join(",");

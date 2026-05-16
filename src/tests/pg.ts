@@ -15,7 +15,7 @@ const dbConfig = {
 const createOrDropDatabase = async (
   action: "CREATE" | "DROP",
   db_config: Record<string, unknown>,
-  dbName: string,
+  dbName: string
 ) => {
   const config = { ...db_config };
   config.database = "postgres";
