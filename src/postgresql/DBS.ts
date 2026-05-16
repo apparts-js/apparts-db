@@ -119,7 +119,7 @@ class DBS extends Queriable implements GenericDBS {
     } else {
       prefix = "";
     }
-    let q = `CREATE TABLE "${name}" (`;
+    let q = `CREATE TABLE "${prefix}${name}" (`;
     const parts: string[] = [
       ...fields.map((f) => {
         let res = `"${f.name}" ${f.type}`;
@@ -135,13 +135,16 @@ class DBS extends Queriable implements GenericDBS {
         .filter((i): i is typeof i & { key: string[] } => i.key !== undefined)
         .map(
           (i) =>
-            `CONSTRAINT "${name}_${i.name}_pkey" PRIMARY KEY (` +
+            `CONSTRAINT "${prefix}${name}_${i.name}_pkey" PRIMARY KEY (` +
             i.key.map((k) => `"${k}"`).join(",") +
             ")"
         ),
       ...indexes
         .filter((i) => i.unique)
-        .map((i) => `CONSTRAINT "${name}_${i.name}_u" UNIQUE ("${i.name}")`),
+        .map(
+          (i) =>
+            `CONSTRAINT "${prefix}${name}_${i.name}_u" UNIQUE ("${i.name}")`
+        ),
       ...indexes
         .filter(
           (i): i is typeof i & { foreign: { table: string; field: string } } =>
@@ -149,7 +152,7 @@ class DBS extends Queriable implements GenericDBS {
         )
         .map(
           (i) =>
-            `CONSTRAINT "${name}_${i.name}_fkey" FOREIGN KEY ` +
+            `CONSTRAINT "${prefix}${name}_${i.name}_fkey" FOREIGN KEY ` +
             `("${i.name}") REFERENCES "${i.foreign.table}" ` +
             `(${i.foreign.field}) MATCH SIMPLE`
         ),
