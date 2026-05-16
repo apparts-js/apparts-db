@@ -1,0 +1,140 @@
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
+import { GenericDBS, NotSupportedByDBEngine, Result } from "../generic";
+import { DynamoConfig } from "./Config";
+import Query from "./Query";
+import Transaction from "./Transaction";
+import { Queriable } from "./Queriable";
+import { RAW_COMMAND_FACTORIES, RAW_OPERATIONS } from "./rawCommands";
+
+/**
+ * DynamoDB-backed implementation of {@link GenericDBS}.
+ *
+ * Wraps the AWS DynamoDB DocumentClient for high-level CRUD through
+ * `collection(table).find/insert/update/remove` and `transaction(fn)`.
+ * The {@link DBS.raw} escape hatch forwards typed JSON requests to any
+ * whitelisted DocumentClient operation (Scan, Query, GetItem, etc.).
+ */
+class DBS extends Queriable implements GenericDBS {
+  _client: DynamoDBDocumentClient;
+  _raw: DynamoDBClient;
+
+  getCapabilities() {
+    return {
+      filter: {
+        eq: true,
+        null: true,
+        in: true,
+        notin: true,
+        gt: true,
+        gte: true,
+        lt: true,
+        lte: true,
+        exists: true,
+        and: true,
+        any: false,
+        like: false,
+        ilike: false,
+        jsonPath: false,
+        jsonType: false,
+      },
+      pagination: {
+        limit: true,
+        offset: false,
+        cursor: true,
+        order: false,
+      },
+      mutation: {
+        insert: true,
+        insertBatchAtomic: false,
+        upsert: true,
+        updateByFilter: false,
+        removeByFilter: true,
+      },
+      count: true,
+      transaction: true,
+      drop: false,
+    };
+  }
+
+  constructor(
+    client: DynamoDBDocumentClient,
+    rawClient: DynamoDBClient,
+    config: DynamoConfig
+  ) {
+    super();
+    this._client = client;
+    this._raw = rawClient;
+    this._config = config;
+  }
+
+  collection(table: string): Query {
+    return new Query(this._client, table, {
+      config: this._config,
+      log: (...ps) => this._log(...ps),
+    });
+  }
+
+  async transaction<T>(fn: (t: Transaction) => Promise<T>): Promise<T> {
+    const tx = new Transaction(this._client, { config: this._config });
+    try {
+      const result = await fn(tx);
+      await tx.commit();
+      return result;
+    } catch (e) {
+      await tx.rollback();
+      throw e;
+    } finally {
+      await tx.end();
+    }
+  }
+
+  /**
+   * DynamoDB has no SQL, but it does take typed JSON request objects per
+   * operation. raw(operation, [input]) forwards to the matching SDK
+   * Command after validating the operation is on the whitelist and the
+   * input is a plain object. This is the escape hatch for callers that
+   * need an op the high-level Query API doesn't expose (e.g. Query
+   * against a GSI, ConsistentRead, ProjectionExpression).
+   */
+  async raw<T>(query: string, params?: unknown[]): Promise<Result<T>> {
+    const factory = RAW_COMMAND_FACTORIES[query];
+    if (!factory) {
+      throw new NotSupportedByDBEngine(
+        `DBS.raw: unknown DynamoDB operation "${query}". Supported: ${RAW_OPERATIONS.join(
+          ", "
+        )}.`
+      );
+    }
+    const input = params?.[0];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      throw new NotSupportedByDBEngine(
+        `DBS.raw: DynamoDB ${query} requires a single plain-object input as params[0].`
+      );
+    }
+    try {
+      const res = (await this._client.send(factory(input))) as Record<
+        string,
+        unknown
+      >;
+      // Best-effort uniform shape: rows = Items (Scan/Query) or [Item]
+      // (GetItem) or []; rowCount mirrors what DynamoDB reports.
+      const items =
+        (res.Items as T[] | undefined) ?? (res.Item ? ([res.Item] as T[]) : []);
+      const rowCount = (res.Count as number | undefined) ?? items.length;
+      return { rows: items, rowCount };
+    } catch (e) {
+      this._log("Error in raw:", query, params, e);
+      throw e;
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    // DynamoDBDocumentClient wraps DynamoDBClient; destroying the document
+    // client disposes the underlying raw client too.
+    this._client.destroy();
+  }
+}
+
+export default DBS;

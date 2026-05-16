@@ -350,6 +350,56 @@ class Query extends GenericQuery {
       });
   }
 
+  async insertOrUpdate(content: Record<string, unknown>[], returning = ["id"]) {
+    if (content.length === 0) {
+      return Promise.resolve([]);
+    }
+    let q = `INSERT INTO "${this._table}" `;
+    const keys = Object.keys(content[0]);
+    q += "(" + keys.map((key) => `"${key}"`).join(",") + ")";
+    q += " VALUES ";
+    q += content
+      .map(
+        (_, i) =>
+          "(" +
+          keys.map((_, j) => `$${i * keys.length + (j + 1)}`).join(",") +
+          ")"
+      )
+      .join(",");
+    // Upsert: on PK conflict, overwrite every column from EXCLUDED.
+    // Includes "id" in the SET list (a harmless self-assignment) so
+    // there is no need for a special DO NOTHING branch when "id" is
+    // the only key.
+    q +=
+      ' ON CONFLICT ("id") DO UPDATE SET ' +
+      keys.map((k) => `"${k}" = EXCLUDED."${k}"`).join(",");
+    if (returning && returning.length > 0) {
+      q += " RETURNING " + returning.map((r) => `"${r}"`).join(",");
+    }
+    const params = ([] as unknown[]).concat(
+      ...content.map((c) =>
+        keys.map((k) =>
+          Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]
+        )
+      )
+    );
+    return this._dbs
+      .query(q, params)
+      .then((res) => {
+        return Promise.resolve(res.rows);
+      })
+      .catch((err) => {
+        if (err.code === "23503" || err.code === "23514") {
+          return Promise.reject({
+            msg: "ERROR, tried to insert, constraints not met",
+            _code: 3,
+          });
+        }
+        this._log("Error in insertOrUpdate:", q, params, err);
+        return Promise.reject(err);
+      });
+  }
+
   async updateOne<T>(
     filter: Params,
     c: Record<string, unknown>

@@ -1,9 +1,31 @@
 import { Client } from "pg";
 import { connect } from "..";
-import config from "@apparts/config";
 import { GenericDBS } from "../generic";
+import { PGConfig } from "../postgresql/Config";
 
-const _dbConfig = config.get("db-test-config");
+const parseTestConfig = (): { use: string; postgresql: PGConfig } => {
+  if (process.env.PG_TEST_CONFIG) {
+    return JSON.parse(
+      Buffer.from(process.env.PG_TEST_CONFIG, "base64").toString("utf-8")
+    ) as { use: string; postgresql: PGConfig };
+  }
+  return {
+    use: "postgresql",
+    postgresql: {
+      host: "localhost",
+      port: 5432,
+      user: "postgres",
+      pw: "postgres",
+      db: "postgres",
+      maxPoolSize: 1,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 10000,
+      bigIntAsNumber: true,
+    },
+  };
+};
+
+const _dbConfig = parseTestConfig();
 const dbConfig = {
   ..._dbConfig,
   postgresql: {
