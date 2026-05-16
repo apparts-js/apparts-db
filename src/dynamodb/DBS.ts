@@ -20,6 +20,44 @@ class DBS extends Queriable implements GenericDBS {
   _client: DynamoDBDocumentClient;
   _raw: DynamoDBClient;
 
+  getCapabilities() {
+    return {
+      filter: {
+        eq: true,
+        null: true,
+        in: true,
+        notin: true,
+        gt: true,
+        gte: true,
+        lt: true,
+        lte: true,
+        exists: true,
+        and: true,
+        any: false,
+        like: false,
+        ilike: false,
+        jsonPath: false,
+        jsonType: false,
+      },
+      pagination: {
+        limit: true,
+        offset: false,
+        cursor: true,
+        order: false,
+      },
+      mutation: {
+        insert: true,
+        insertBatchAtomic: false,
+        upsert: true,
+        updateByFilter: false,
+        removeByFilter: true,
+      },
+      count: true,
+      transaction: true,
+      drop: false,
+    };
+  }
+
   constructor(
     client: DynamoDBDocumentClient,
     rawClient: DynamoDBClient,

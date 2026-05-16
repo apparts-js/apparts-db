@@ -46,6 +46,8 @@
   },
   "devDependencies": {
     "@apparts/config": "^1.0.6",
+    "@aws-sdk/client-dynamodb": "^3.1048.0",
+    "@aws-sdk/lib-dynamodb": "^3.1048.0",
     "@eslint/js": "^9.39.4",
     "@tsconfig/node20": "^20.1.9",
     "@types/node": "^20.19.39",

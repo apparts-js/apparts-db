@@ -2,7 +2,7 @@ import { GenericQueriable, Id, NotSupportedByDBEngine } from "../generic";
 import { DynamoConfig } from "./Config";
 
 export abstract class Queriable extends GenericQueriable {
-  _config: DynamoConfig;
+  _config!: DynamoConfig;
 
   newId(): Id {
     throw new NotSupportedByDBEngine(

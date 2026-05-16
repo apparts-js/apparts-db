@@ -376,7 +376,7 @@ class Query extends GenericQuery {
     if (returning && returning.length > 0) {
       q += " RETURNING " + returning.map((r) => `"${r}"`).join(",");
     }
-    const params = [].concat(
+    const params = ([] as unknown[]).concat(
       ...content.map((c) =>
         keys.map((k) =>
           Array.isArray(c[k]) ? this._transformArray(c[k]) : c[k]

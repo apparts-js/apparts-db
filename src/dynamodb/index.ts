@@ -45,4 +45,4 @@ export const connectDynamo = async (c: DynamoConfig): Promise<DBS> => {
 };
 
 export { DBS };
-export { DynamoConfig };
+export type { DynamoConfig };
