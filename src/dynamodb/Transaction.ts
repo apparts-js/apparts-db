@@ -36,14 +36,14 @@ class Transaction extends Queriable implements GenericTransaction {
     if (!factory) {
       throw new NotSupportedByDBEngine(
         `Transaction.raw: unknown DynamoDB operation "${query}". Supported: ${RAW_OPERATIONS.join(
-          ", ",
-        )}.`,
+          ", "
+        )}.`
       );
     }
     const input = params?.[0];
     if (typeof input !== "object" || input === null || Array.isArray(input)) {
       throw new NotSupportedByDBEngine(
-        `Transaction.raw: DynamoDB ${query} requires a single plain-object input as params[0].`,
+        `Transaction.raw: DynamoDB ${query} requires a single plain-object input as params[0].`
       );
     }
     const res = (await this._client.send(factory(input))) as Record<
@@ -64,7 +64,7 @@ class Transaction extends Queriable implements GenericTransaction {
         config: this._config,
         log: (...ps) => this._log(...ps),
       },
-      this._writes,
+      this._writes
     );
   }
 
@@ -80,12 +80,12 @@ class Transaction extends Queriable implements GenericTransaction {
       // Validate BEFORE marking the transaction finished so a caller that
       // catches this error can split the work into smaller batches.
       throw new NotSupportedByDBEngine(
-        `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`,
+        `Transaction.commit: DynamoDB TransactWriteItems is limited to 100 operations; got ${this._writes.length}.`
       );
     }
     try {
       await this._client.send(
-        new TransactWriteCommand({ TransactItems: this._writes }),
+        new TransactWriteCommand({ TransactItems: this._writes })
       );
       this._finished = true;
     } catch (e) {
@@ -109,8 +109,8 @@ class Transaction extends Queriable implements GenericTransaction {
         "TransactWriteItems",
         {},
         new Error(
-          "Transaction.rollback: called after the transaction was already committed or rolled back; the server-side state cannot be undone.",
-        ),
+          "Transaction.rollback: called after the transaction was already committed or rolled back; the server-side state cannot be undone."
+        )
       );
       return;
     }
