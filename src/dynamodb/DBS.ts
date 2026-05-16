@@ -8,6 +8,14 @@ import Transaction from "./Transaction";
 import { Queriable } from "./Queriable";
 import { RAW_COMMAND_FACTORIES, RAW_OPERATIONS } from "./rawCommands";
 
+/**
+ * DynamoDB-backed implementation of {@link GenericDBS}.
+ *
+ * Wraps the AWS DynamoDB DocumentClient for high-level CRUD through
+ * `collection(table).find/insert/update/remove` and `transaction(fn)`.
+ * The {@link DBS.raw} escape hatch forwards typed JSON requests to any
+ * whitelisted DocumentClient operation (Scan, Query, GetItem, etc.).
+ */
 class DBS extends Queriable implements GenericDBS {
   _client: DynamoDBDocumentClient;
   _raw: DynamoDBClient;
