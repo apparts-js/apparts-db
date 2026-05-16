@@ -66,7 +66,6 @@ Before attempting any fix, determine whether the implementation is actually fini
    ```
 
 3. **If unchecked subtasks exist** (`$UNCHECKED -gt 0`):
-
    - The implementation is not complete. **Hand off to `plan-and-implement` and stop.**
    - Invoke:
      ```

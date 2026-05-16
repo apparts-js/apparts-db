@@ -8,15 +8,15 @@ export abstract class GenericQuery {
   abstract count(): Promise<number>;
   abstract insert<Rs extends string[]>(
     content: Record<string, unknown>[],
-    returning?: Rs
+    returning?: Rs,
   ): Promise<Record<string, Id>[]>;
   abstract updateOne<T>(
     filter: Params,
-    c: Record<string, unknown>
+    c: Record<string, unknown>,
   ): Promise<Result<T>>;
   abstract update<T>(
     filter: Params,
-    c: Record<string, unknown>
+    c: Record<string, unknown>,
   ): Promise<Result<T>>;
   abstract remove<T>(params: Params): Promise<Result<T>>;
 }
